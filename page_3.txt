@@ -1,0 +1,145 @@
+S. Mishra and R. Molinaro  Journal of Quantitative  Spectroscopy  & Radiative  Transfer 270 (2021) 107705 
+We note that for many applications  of radiative  transfer,  it is 
+common  to consider  the steady (time-independent)  version  of the 
+radiative  transfer  Eq. (1.1) , which formally  results from setting  c → 
+∞ and dropping  the time-derivative  term in the left hand side of 
+(1.1) . 
+2.2. Quadrature  rules and training  points 
+Quadrature  i.e numerical  approximation  of integrals,  is essen- 
+tial for simulating  the radiative  transfer  Eq. (1.1) with PINNs. It is 
+needed  for approximating  the integral  with the scattering  kernel 
+in (1.1) . Moreover,  we follow [32] , where quadrature  points were 
+used as training  points for PINNs. 
+Given any domain  D and an integrable  function  g : D /mapsto→ R , we 
+need to specify  quadrature  points z i ∈ D for 1 ≤i ≤N, and quadra-  
+ture weights  w i in order to perform  the following  approximation,  
+/integraldisplay 
+D g(z) dz ≈N /summationdisplay 
+i =1 w i g(z i ) . (2.6) 
+For our speciﬁc  integrals,  we consider  Gauss-Legendre  quadra-  
+ture rules [34] for approximating  the scattering  kernel integral  in 
+(1.1) . To this end, we choose  points z S 
+i = (ω S 
+i , νS 
+i ) , for 1 ≤i ≤N S , 
+with ω S 
+i ∈ Sand νS 
+i ∈ /Lambda1as the Gauss-Legendre  quadrature  points 
+and the weights  w S 
+i are the corresponding  quadrature  weights  for 
+a Gauss-Legendre  quadrature  rule of order s ≥1 . 
+We also need the following  training  points for the PINNs algo- 
+rithm, 
+2.2.1. Interior  training  points. 
+We set S int = { z int 
+j } , for 1 ≤j ≤N int , and z int 
+j = 
+(t int 
+j , x int 
+j , ω int 
+j , νint 
+j ) with t int 
+j ∈ [0 , T ] , x int 
+j ∈ D, ω int 
+j ∈ S, νint 
+j ∈ /Lambda1, 
+for all j. These points are the quadrature  points of a suitable  
+quadrature  rule with weights  w int 
+j . 
+If the underlying  spatial domain  D ⊂R d can be mapped  to a 
+d-dimensional  rectangle,  either entirely  or in patches,  then we 
+can set the training  points z int 
+j as a low-discrepancy  Sobol se- 
+quence  [35] in [0 , 1] 2 d+1 , by rescaling  the relevant  domains.  Sobol 
+sequences  arise in the context  of Quasi-Monte  Carlo integration  
+[36] and the corresponding  quadrature  weights  are w int 
+j ≡1 
+N int , for 
+all j. Note that the QMC quadrature  rule does not suffer from the 
+curse of dimensionality  (see Section  2.5 for details).  In case the ge- 
+ometry  of the domain  is very complicated,  one has simply choose  
+random  points, independent  and identically  distributed  with the 
+underlying  uniform  distribution,  as training  points. 
+2.2.2. Temporal  boundary  training  points. 
+We denote  S tb = { z tb 
+j } , for 1 ≤j ≤N tb , and z tb 
+j = (x tb 
+j , ω tb 
+j , νtb 
+j ) 
+with x tb 
+j ∈ D, ω tb 
+j ∈ S, νtb 
+j ∈ /Lambda1, for all j. These points are the quadra-  
+ture points of a suitable  quadrature  rule with weights  w tb 
+j . We can 
+choose  Sobol points for logically  rectangular  domains  D or random  
+points to constitute  this training  set. 
+2.2.3. Spatial boundary  training  points. 
+We denote  S sb = { z sb 
+j } , for 1 ≤j ≤N sb , and z sb 
+j = 
+(t tb 
+j , x tb 
+j , ω tb 
+j , νtb 
+j ) with t tb 
+j ∈ [0 , T ] , x tb 
+j ∈ ∂D, ω tb 
+j ∈ S, νtb 
+j ∈ /Lambda1, for 
+all j. These points are the quadrature  points of a suitable  quadra-  
+ture rule with weights  w sb 
+j . As before,  we can choose  Sobol points 
+for logically  rectangular  domains  D or random  points to constitute  
+this training  set. 
+Fig. 1. An illustration  of a (fully connected)  deep neural network.  The red neurons 
+represent  the inputs to the network and the blue neurons denote the output layer. 
+They are connected  by hidden layers with yellow neurons.  Each hidden unit (neu- 
+ron) is connected  by aﬃne linear maps between  units in different  layers and then 
+with nonlinear  (scalar) activation  functions  within units. 
+2.3. Neural networks  
+PINNs are neural networks  i.e. given an input y = (t, x, ω, ν) ∈ 
+D = D T ×S ×/Lambda1, a feedforward  neural network  (also termed  as a 
+multi-layer  perceptron),  shown in Fig. 1 , transforms  it to an out- 
+put, through  a layers of units (neurons)  which compose  of either 
+aﬃne-linear  maps between  units (in successive  layers) or scalar 
+non-linear  activation  functions  within layers [11] , resulting  in the 
+representation,  
+u θ(y ) = C K ◦A ◦C K−1 . . . . . . . . . ◦A ◦C 2 ◦A ◦C 1 (y ) . (2.7) 
+Here, ◦refers to the composition  of functions  and A is a scalar 
+(non-linear)  activation  function  (applied  to vectors  component-  
+wise). A large variety  of activation  functions  have been considered  
+in the machine  learning  literature  [11] . Popular  choices  for the ac- 
+tivation  function  A in (2.7) include  the sigmoid  function,  the hy- 
+perbolic  tangent  function  and the ReLU function.  
+The aﬃne map in the k -layer is given by, 
+C k z k = W k z k + b k , for W k ∈ R d k +1 ×d k , z k ∈ R d k , b k ∈ R d k +1 . (2.8) 
+For consistency  of notation,  we set d 1 = ¯d = 2 d + 1 , for d-space di- 
+mensions  and d K = 1 . 
+Thus in the terminology  of machine  learning  (see also Fig. 1 ), 
+our neural network  (2.7) consists  of an input layer, an output layer 
+and (K −1) hidden  layers for some 1 < K ∈ N . The k -th hidden  
+layer (with d k neurons)  is given an input vector z k ∈ R d k and trans- 
+forms it ﬁrst by an aﬃne linear map C k (2.8) and then by a non- 
+linear (component  wise) activation  σ. A straightforward  addition  
+shows that our network  contains  /parenleftbigg
+2 d + 2 + K−1 /summationtext 
+k =2 d k /parenrightbigg
+neurons.  We 
+also denote,  
+θ= { W k , b k } , θW = { W k } ∀ 1 ≤k ≤K, (2.9) 
+to be the concatenated  set of (tunable)  weights  for our network.  It 
+is straightforward  to check that θ∈ /Theta1⊂R M with 
+M = K−1 /summationdisplay 
+k =1 (d k + 1) d k +1 . (2.10) 
+2.4. Training  PINNs: Loss functions  and optimization  
+The neural network  u θ(2.7) depends  on the tuning parameter  
+θ∈ /Theta1of weights  and biases. Within  the standard  paradigm  of deep 
+learning  [11] , one trains the network  by ﬁnding  tuning parameters  
+θsuch that the loss (error, mismatch,  regret) between  the neural 
+network  and the underlying  target is minimized.  Our target is the 
+solution  u of the radiative  transfer  Eq. (1.1) and we wish to ﬁnd 
+the tuning parameters  θsuch that the resulting  neural network  u θ
+approximates  u . 
+3 

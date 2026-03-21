@@ -28,11 +28,12 @@ def get_points(samples, dim, type_point_param, random_seed):
         torch.random.manual_seed(random_seed)
         points = torch.rand([samples, dim]).type(torch.FloatTensor)
     elif type_point_param == "sobol":
-        skip = random_seed
-        data = np.full((samples, dim), np.nan)
-        for j in range(samples):
-            seed = j + skip
-            data[j, :], next_seed = sobol_seq.i4_sobol(dim, seed)
+        # Use Scipy's Sobol generator instead of sobol_seq
+        sampler = qmc.Sobol(d=dim, scramble=False)
+        # Skip the first random_seed points to get different samples
+        if random_seed > 0:
+            sampler.fast_forward(random_seed)
+        data = sampler.random(n=samples)
         points = torch.from_numpy(data).type(torch.FloatTensor)
     return points
 

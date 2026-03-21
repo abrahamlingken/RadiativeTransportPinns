@@ -1,0 +1,17 @@
+{
+  "N_coll": 16384,
+  "N_sb": 12288,
+  "network": {
+    "hidden_layers": 8,
+    "neurons": 64,
+    "residual_parameter": 0.1,
+    "kernel_regularizer": 2,
+    "regularization_parameter": 0,
+    "batch_size": 28672,
+    "epochs": 1,
+    "activation": "tanh"
+  },
+  "final_loss": 2.4499657229171135e-05,
+  "iterations": 1270,
+  "training_time": 677.185161113739
+}

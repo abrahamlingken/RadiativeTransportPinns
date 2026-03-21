@@ -1,0 +1,19 @@
+S. Mishra and R. Molinaro  Journal of Quantitative  Spectroscopy  & Radiative  Transfer 270 (2021) 107705 
+Fig. 5. Comparison  of incident radiationn  with respect to the exact solution of the diffusion  approximation  (3.12) and PINN approximation  of the full radiative  transfer 
+Eq. (3.9) at rescaled time τ= 1 for two different  values of the absorption  coeﬃcient  k ν= 1 , 10 . 
+Fig. 6. Comparison  of exact solutions  of the diffusion  approximation  (3.12) with the PINN approximation  of the full radiative  transfer Eq. (3.9) for two different  values of the 
+absorption  coeﬃcient  k ν= 1 , 10 at different  radial locations  and at rescaled time τ= 1 . 
+(3.12) for the K = 2 case. This follows  from the fact that the diffusion  approximation  will provide  a poor approximation  of (3.9) for low 
+Knudsen  numbers.  On the other hand, given the relatively  low training  error as well as the error estimate  (A.3) , coupled  with the results 
+of the previous  numerical  experiments,  we argue that the PINN provides  a much more accurate  approximation  to the underlying  radiative  
+intensity  (and its moments)  than the diffusion  approximation  will do, atleast for low to moderate  Knudsen  numbers.  Hence, PINNs provide  
+a viable and accurate  method  for competing  radiative  transfer  in media with different  optical properties.  Moreover,  the runtime  for even 
+this very complicated  problem  was reasonably  small, ranging  from two to three and half hours on a single GPU. 
+4. PINNs For the inverse  problem  for radiative  transfer  
+One of the most notable  features  of PINNs is their ability to approximate  solutions  of inverse problems  , with the same accuracy  and 
+computational  cost as that of forward  problems  for PDEs. Moreover,  the code for inverse  problems  ends up being a very minor modiﬁcation  
+to the code for forward  problems,  which makes PINNs extremely  attractive  for various  applications  [29,30]  and references  therein.  
+Here, we focus on the following  inverse  problem  for radiative  transfer.  We consider  the full time-dependent  version  on the radiative  
+transfer  Eq. (1.1) , with initial and boundary  conditions  (2.3) . The inverse  problem  is to compute  unknown  absorption  coeﬃcients  k , scat- 
+tering coeﬃcients  σ, scattering  kernel /Phi1or emission  term f, given measurements  of either the full radiative  intensity  u or its angular  
+10 

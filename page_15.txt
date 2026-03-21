@@ -1,0 +1,98 @@
+S. Mishra and R. Molinaro  Journal of Quantitative  Spectroscopy  & Radiative  Transfer 270 (2021) 107705 
+As the training  points in S tb are the Sobol quadrature  points, we realize that the training  error (E tb 
+T ) 2 (2.17) is the quasi-Monte  Carlo 
+quadrature  for the ﬁrst integral  in (A.12) . Hence by the well-known  Koksma-Hlawka  inequality  [36] , we obtain the following  estimate,  
+/integraldisplay 
+D ×S×/Lambda1(R ∗
+tb ) 2 d xd ωd ν≤(E tb 
+T ) 2 + V HK /parenleftbig(R ∗
+tb ) 2 /parenrightbig( log (N tb )) 2 d 
+N tb . (A.13) 
+By a similar  argument,  we can estimate,  
+/integraldisplay 
+/Gamma1−(R ∗
+sb ) 2 d td s (x ) d ωd ν≤(E sb 
+T ) 2 + V HK /parenleftbig(R ∗
+sb ) 2 /parenrightbig( log (N sb )) 2 d 
+N sb , 
+/integraldisplay 
+D (R ∗
+int ) 2 dz ≤(E int 
+T ) 2 + V HK /parenleftbig(R ∗
+int ) 2 /parenrightbig( log (N int )) 2 d+1 
+N int , (A.14) 
+As ω S 
+i , νS 
+i , for 1 ≤i ≤N S are Gauss-quadrature  points, we follow [34] and readily  estimate  Edeﬁned  in (A.5) by the error for an s -th order 
+accurate  Gauss quadrature  rule with s = s (/lscript ) as, 
+/integraldisplay 
+D (E(u ∗, /Phi1)) 2 dz ≤C N −2 s 
+S , (A.15) 
+with constant  C deﬁned  in (A.4) By plugging  in the estimates  (A .13), (A .14), (A .15) in (A .12) and identifying  constants,  we derive the desired  
+estimate  (A.3) on the generalization  error (2.16) . /square
+Appendix  B. Estimates  on the generalization  error in the steady case 
+The steady-state  (time-independent)  version  of the radiative  transfer  Eq. (1.1) is obtained  by letting the speed of light c → ∞ and 
+resulting  in, 
+(k + σ) u = −ω ·∇ x u + σ
+s d /integraldisplay 
+/Lambda1/integraldisplay 
+S /Phi1(ω , ω /prime , ν, ν/prime ) u (x, ω /prime , ν/prime ) dω /prime dν/prime + f, (B.1) 
+with all the coeﬃcients  and sources  as deﬁned  before.  We also impose  the inﬂow boundary  condition,  
+u (x, ω, ν) = u b (x, ω, ν) , (t, x, ω, ν) ∈ /Gamma1s 
+, (B.2) 
+with inﬂow boundary  deﬁned  by, 
+/Gamma1s 
+−= { (x, ω, ν) ∈ ∂D ×S ×/Lambda1: ω ·n (x ) < 0 } (B.3) 
+with n (x ) denoting  the unit outward  normal  at any point x ∈ ∂D . 
+The PINNs Algorithm  2.1 can be readily  adpated  to this case by simply (formally)  neglecting  the temporal  dependence  in the residuals  
+(2.11), (2.12) and loss functions and the underlying deﬁnitions of neural networks.  We omit detailing this procedure  here. Our objective  is 
+to bound the resulting  generalization  error, 
+E s 
+G = E s 
+G (θ∗) := /parenleftBigg /integraldisplay 
+D ×S×/Lambda1| u (x, ω, ν) −u ∗(x, ω, ν) | 2 dz /parenrightBigg 1 
+2 
+, (B.4) 
+with d z = d xd ωd νdenoting  the underlying  volume  measure.  As in Lemma  Appendix  A.1 , we will bound the generalization  error in terms 
+of the training  errors, 
+E sb 
+T := /parenleftBigg 
+N sb /summationdisplay 
+j=1 w sb 
+j | R sb,θ∗(z sb 
+j ) | 2 /parenrightBigg 1 
+2 
+, E int 
+T := /parenleftBigg 
+N int /summationdisplay 
+j=1 w int 
+j | R int,θ∗(z int 
+j ) | 2 /parenrightBigg 1 
+2 
+(B.5) 
+Here, z int 
+j and z sb 
+j are the interior  and spatial boundary  training  points. 
+We have the following  estimate  on the generalization  error, 
+Lemma  B.1. Let u ∈ L 2 (D ×S ×/Lambda1) be the unique weak solution  of the radiative  transfer  Eq. (B.1) , with absorption  coeﬃcient  0 < k min ≤
+k (x, ν) ≤k max < ∞ , scattering  coeﬃcient  0 < σmin ≤σ(x, ν) ≤σmax < ∞ , for almost every x ∈ D, ν∈ /Lambda1and a symmetric  scattering  kernel 
+/Phi1∈ C /lscript (S ×/Lambda1×S ×/Lambda1) , for some /lscript ≥1 , such that the function  /Psi1(deﬁned  in (A.1) ) is in L ∞ (S ×/Lambda1) . We further assume  that the absorption  
+and scattering  coeﬃcients  are related in the following  manner,  there exists a κ> 0 , such that 
+k min + σmin −σmax + /bardbl /Psi1/bardbl L ∞ 
+s d ≥κ (B.6) 
+Let u ∗= u θ∗∈ C /lscript (D ×S ×/Lambda1) be the output of the PINNs Algorithm  2.1 for approximating  the stationary  radiative  transfer  Eq. (B.1) , such that 
+max { V HK (u ∗) , V HK /parenleftbig
+R int,θ∗/parenrightbig} < + ∞ , (B.7) 
+with V HK being the Hardy-Krause  variation.  We also assume  that the boundary  data u b is of bounded  Hardy-Krause  variation.  Then, under the 
+assumption  that Sobol points are used as the training  points S int , S sb in Algorithm  2.1 and Guass-quadrature  rule of order s = s (/lscript ) is used in 
+approximating  the scattering  kernel in the residual  (2.11) , we have the following  estimate  on the generalization  error, 
+(E s 
+G ) 2 ≤C /parenleftbigg
+(E sb 
+T ) 2 + (E int 
+T ) 2 + ( log (N sb )) 2 d−1 
+N sb + ( log (N int )) 2 d 
+N int + N −2 s 
+S /parenrightbigg
+(B.8) 
+15 

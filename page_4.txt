@@ -1,0 +1,77 @@
+S. Mishra and R. Molinaro  Journal of Quantitative  Spectroscopy  & Radiative  Transfer 270 (2021) 107705 
+To do so, we follow [20,28,32]  and deﬁne the following  PDE residual  R int,θ= R int,θ(t, x, ω, ν) , for all (t, x, ω, ν) ∈ D T ×S ×/Lambda1, 
+R int,θ:= 1 
+c ∂ t u θ+ ω ·∇ x u θ+ ku θ+ σ/parenleftbigg
+u θ−1 
+s d N S /summationdisplay 
+i =1 w S 
+i /Phi1(ω , ω S 
+i , ν, νS 
+i ) u θ(t, x, ω S 
+i , νS 
+i ) /parenrightBig
+−f. (2.11) 
+Here, k, σ, fare deﬁned  from (1.1) and (ω S 
+i , νS 
+i ) are the Gauss-Legendre  quadrature  points, with quadrature  weights  w i of order S. 
+We also need the following  residuals  for the initial and boundary  conditions,  
+R tb = R tb,θ:= u θ−u 0 , ∀ (x, ω, ν) ∈ D ×S ×/Lambda1, 
+R sb = R sb,θ:= u θ−u b , ∀ (t, x, ω, ν) ∈ /Gamma1−. (2.12) 
+The strategy  of PINNs, following  [28,32]  , is to minimize  the residuals  (2.11) (2.12) , simultaneously  over the admissible  set of tuning 
+parameters  θ∈ /Theta1i.e 
+Find θ∗∈ /Theta1: θ∗= arg min 
+θ∈ /Theta1/parenleftbig/bardbl R int,θ/bardbl 2 
+L 2 (D T ×S×/Lambda1) + /bardbl R sb,θ/bardbl 2 
+L 2 (/Gamma1−) + /bardbl R tb,θ/bardbl 2 
+L 2 (D ×S×/Lambda1) /parenrightbig
+. (2.13) 
+However,  the L 2 norms in (2.13) involve  integrals  that cannot be computed  exactly  and need to be approximated  by suitable  quadrature  
+rules. It is exactly  the place to recall the different  training  sets, introduced  in Section  2.2 . As these precisely  correspond  to the quadrature  
+points of an underlying  quadrature  rule, we approximate  the integrals  in (2.13) with the corresponding  quadrature  rule to deﬁne the 
+following  loss function,  
+J(θ) := N sb /summationdisplay 
+j=1 w sb 
+j | R sb,θ(z sb 
+j ) | 2 + N tb /summationdisplay 
+j=1 w tb 
+j | R tb,θ(z tb 
+j ) | 2 + λN int /summationdisplay 
+j=1 w int 
+j | R int,θ(z int 
+j ) | 2 (2.14) 
+with the residuals  R sb , R tb and R int deﬁned  in (2.12), (2.11) , and w sb , z sb , w sb , z sb , w int , z int being the quadrature  weights  and training  
+points, deﬁned  in Section  2.2 . Furthermore,  λis a hyperparameter  for balancing  the residuals,  on account  of the PDE and the initial and 
+boundary  data, respectively.  
+It is common  in machine  learning  [11] to regularize  the minimization  problem  for the loss function  i.e we seek to ﬁnd, 
+θ∗= arg min 
+θ∈ /Theta1( J(θ) + λreg J reg (θ) ) . (2.15) 
+Here, J reg : /Theta1→ R is a weight regularization  (penalization)  term. A popular  choice is to set J reg (θ) = /bardbl θW /bardbl q 
+q for either q = 1 (to induce 
+sparsity)  or q = 2 . The parameter  0 ≤λreg /lessmuch1 balances  the regularization  term with the actual loss J(2.14) . 
+The above minimization  problem  amounts  to ﬁnding  a minimum  of a possibly  non-convex  function  over a subset of R M for possibly  
+very large M. We will follow standard  practice  in machine  learning  and solving  this minimization  problem  approximately  by either (ﬁrst- 
+order) stochastic  gradient  descent  methods  such as ADAM [37] or even higher-order  optimization  methods  such as different  variants  of 
+the LBFGS algorithm  [38] . 
+For notational  simplicity,  we denote  the (approximate,  local) minimum  in (2.15) as θ∗and the underlying  deep neural network  u ∗= u θ∗
+will be our physics-informed  neural network  (PINN) approximation  for the solution  u of the PDE (1.1) . We summarize  the PINN algorithm  
+for approximating  radiative  transfer  below, 
+Algorithm  2.1. Algorithm  to ﬁnd a physics  informed  neural network  (PINN) to approximate  the radiative  intensity  u solving  (1.1) . 
+Inputs:  Underlying  domain  D T ×S ×/Lambda1, coeﬃcients  and data for the radiative  transfer  equation  (1.1), quadrature  points and weights  for 
+underlying  quadrature  rules, non-convex  gradient  based optimization  algorithms.  
+Goal: Find PINN u ∗= u θ∗for approximating  the solution  u of (1.1). 
+Step 1: Choose  the training  sets as described  in Section  2.2. 
+Step 2: For an initial value of the weight  vector θ∈ /Theta1, evaluate  the neural network  u θ(2.7), the PDE residual  (2.11), the boundary  resid- 
+uals (2.12), the loss function  (2.15) and its gradients  to initialize  the underlying  optimizationalgorithm.  
+Step 3: Run the optimization  algorithm  till an approximate  local minimum  θ∗of (2.15) is reached.  The map u ∗= u θ∗is the desired  PINN 
+for approximating  the solution  u of the radiative  transfer  equation.  
+2.5. Estimates  on the generalization  error 
+For the sake of deﬁniteness  and simplicity,  we consider  the spatial domain  as D = [0 , 1] d , with dbeing the spatial dimension.  Any 
+rectangular  domain  d /producttext 
+i =1 [ a i , b i ] , with a i < b i , for any a i , b i ∈ R can be mapped  to [0 , 1] d by rescaling.  Similarly,  logically  (patch or block) 
+cartesian  domains  can be transformed  to (0 , 1) d by combinations  of coordinate  transforms.  We also rescale  time and frequency  to set 
+T = 1 and /Lambda1= [0 , 1] . Finally,  the angular  domains  can be mapped  onto to [0 , 1] d−1 by rescaling  the underlying  polar coordinates.  Hence, 
+the underlying  domain  is D = D T ×S ×/Lambda1= [0 , 1] 2 d+1 . Thus, we can choose  our interior  training  points S int , temporal  boundary  training  
+points S tb and spatial boundary  training  points S sb as low-discrepancy  Sobol points [36] . 
+Our aim in this section  is to derive a rigorous  estimate  on the so-called  generalization  error (or approximation  error) for the trained  
+neural network  u ∗= u θ∗, which is the output of the PINNs Algorithm  2.1 . This error is of the form, 
+4 

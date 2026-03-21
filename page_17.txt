@@ -1,0 +1,121 @@
+S. Mishra and R. Molinaro  Journal of Quantitative  Spectroscopy  & Radiative  Transfer 270 (2021) 107705 
+References  
+[1] Modest MF . Radiative  heat transfer. Elsevier;  2003 . 
+[2] Kanschat  G , et al . Numerical  methods  in multi-dimensional  radiative  transfer. 
+Springer;  2008 . 
+[3] Kaushik D , Smith M , Wollaber  A , Smith B , Siegel A , Yang WS . Enabling  high ﬁ- 
+delity neutron transport  simulations  on petascle architectures.  In: Proceedings  
+of the Conference  on High Performance  Computing  Networking,  Storage, and 
+Analysis,  volume 67, Portland,  Oregon; 2009 . 
+[4] Frank M . Approximate  models for radiative  transfer. Bull Inst Math Acad Sinica 
+(New Series) 2007;2:409–32  . 
+[5] Grella K . Sparse tensor approximation  for radiative  transport.  ETH Zurich; 
+2013 . 
+[6] Stamatellos  D , Whitworth  AP . Probing the initial conditions  for star forma- 
+tion with monte carlo radiative  transfer simulations.  In: Numerical  Methods  in 
+Multidimensional  Radiative  Transfer,  G. Kanschat,  E. Meink ȵ hn, R. Rannacher,  
+and R. Wehrse, eds. Springer;  2008. p. 289–98 . 
+[7] Lathrop KD . Ray effects in discrete ordinates  equations..  Nucl Sci Eng 
+1968;32:357  . 
+[8] Grella K , Schwab C . Sparse tensor spherical  harmonics  approximation  in radia- 
+tive transfer. J Comput Phys 2011;230:8452–73  . 
+[9] Modest MF , Yang J . Elliptic pde formulation  and boundary  conditions  of the 
+spherical  harmonics  method of arbitrary  order for general three-dimensional  
+geometries.  J Quant Spectrosc  Radiat Transfer 2008;109:1641–66  . 
+[10] Widmer G . Sparse Finite Elements  for Radiative  Transfer.  ETH Zurich; 2009 . 
+[11] Goodfellow  I , Bengio Y , Courville  A . Deep learning.  MIT press; 2016 . 
+[12] LeCun Y , Bengio Y , Hinton G . Deep learning.  Nature 2015;521(7553):436–44  . 
+[13] Evans R , Jumper J , Kirkpatrick  J , Sifre L , Green T , Qin C , et al. De novo 
+structure  prediction  with deep-learning  based scoring. Annu Rev Biochem  
+2018;77(363–382):6  . 
+[14] E W , Han J , Jentzen A . Deep learning-based  numerical  methods  for high- 
+-dimensional  parabolic  partial differential  equations  and backward  stochas- 
+tic differential  equations.  Communications  in Mathematics  and Statistics  
+2017;5(4):349–80  . 
+[15] Han J , Jentzen A , E W . Solving high-dimensional  partial differential  equa- 
+tions using deep learning.  Proceedings  of the National Academy  of Sciences 
+2018;115(34):8505–10  . 
+[16] Lye KO, Mishra S, Chandrasekhar  P, Ray D, 2020a. Iterative surrogate  model 
+optimization  (ismo): An active learning algorithm  for pde constrained  opti- 
+mization  with deep neural networks.  Preprint,  available  as arXiv: 2008.05730  . 
+[17] Lye KO , Mishra S , Ray D . Deep learning observables  in computational  ﬂuid dy- 
+namics. J Comput Phys 2020:109339  . 
+[18] Barron AR . Universal  approximation  bounds for superpositions  of a sigmoidal  
+function.  IEEE Trans Inform Theory 1993;39(3):930–45  . 
+[19] Lagaris IE , Likas A , D PG . Neural-network  methods  for bound- ary value prob- 
+lems with irregular  boundaries.  IEEE Trans Neural Networks  20 0 0;11:1041–9  . 
+[20] Lagaris IE , Likas A , Fotiadis DI . Artiﬁcial  neural networks  for solving 
+ordinary  and partial differential  equations.  IEEE Trans Neural Networks  
+1998;9(5):987–10  0 0 . 
+[21] Chen Y, Lu L, Karniadakis  GE, Negro LD, 2019. Physics-informed  neural net- 
+works for inverse problems  in nano-optics  and metamaterials.  Preprint,  avail- 
+able from arXiv: 1912.01085  . 
+[22] Jagtap AD , Karniadakis  GE . Extended  physics-informed  neural networks  
+(xpinns):  ageneralized  space-time  domain decomposition  based deep learning 
+framework  for nonlinear  partial differential  equations.  Commun  Comput Phys 
+2020;28(5):2002–41  . 
+[23] Jagtap AD , Kharazmi  E , Karniadakis  GE . Conservative  physics-informed  neural 
+networks  on discrete domains  for conservation  laws: applications  to forward 
+and inverse problems.  Comput Methods  Appl Mech Eng 2020;365:113028  . 
+[24] Liu Y, Meng X, Karniadakis  GE, 2020. B-pinns: Bayesian  physics-informed  neu- 
+ral networks  for forward and inverse pde problems  with noisy data. Preprint,  
+available  from arXiv: 2003.06097  . [25] Lu L, Meng X, Mao Z, Karniadakis  GE, 2019. Deepxde:  A deep learning library 
+for solving differential  equations.  Preprint,  available  from arXiv: 1907.04502  . 
+[26] Mao Z , Jagtap AD , Karniadakis  GE . Physics-informed  neural networks  for high- 
+speed ﬂows.. Comput. Methods  Appl. Mech. Eng. 2020;360:112789  . 
+[27] Pang G , Lu L , Karniadakis  GE . Fpinns: fractional  physics-informed  neural net- 
+works. SIAM J Sci Comput 2019;41:A2603–26  . 
+[28] Raissi M , Karniadakis  GE . Hidden physics models: machine  learning of nonlin- 
+ear partial differential  equations.  J Comput Phys 2018;357:125–41  . 
+[29] Raissi M , Perdikaris  P , Karniadakis  GE . Physics-informed  neural networks:  a 
+deep learning framework  for solving forward and inverse problems  involving  
+nonlinear  partial differential  equations.  J Comput Phys 2019;378:686–707  . 
+[30] Raissi M, Yazdani A, Karniadakis  GE. Hidden ﬂuid mechanics:  a navier-stokes  
+informed  deep learning framework  for assimilating  ﬂow visualization  data 
+2018 . arXiv preprint arXiv: 1808.04327  
+[31] Shukla K , Di Leoni PC , Blackshire  J , Sparkman  D , Karniadakis  GE . Physics-in-  
+formed neural network for ultrasound  nondestructive  quantiﬁcation  of surface 
+breaking  cracks. J Nondestr  Eval 2020;39(3):1–20  . 
+[32] Mishra S, Molinaro  R, 2020. Estimates  on the generalization  error of physics 
+informed  neural networks  (pinns) for approximating  pdes. Preprint,  available  
+from arXiv: 2006:16144v1  . 
+[33] Mishra S, Molinaro  R, 2020. Estimates  on the generalization  error of physics 
+informed  neural networks  (pinns) for approximating  a class of inverse prob- 
+lems for pdes.Preprint,  available  from arXiv: 2007.01138  . 
+[34] Stoer J , Bulirsch R . Introduction  to numerical  analysis. Springer Verlag; 2002 . 
+[35] Sobol’ IM . On the distribution  of points in a cube and the approximate  evalu- 
+ation of integrals.  Zhurnal Vychislitel’noi  Matematiki  i Matematicheskoi  Fiziki 
+1967;7(4):784–802  . 
+[36] Caﬂisch RE . Monte carlo and quasi-monte  carlo methods.  Acta Numerica  
+1998;7:1–49  . 
+[37] Kingma DP , Ba J . Adam: A method for stochastic  optimization.  In: 3rd Interna- 
+tional Conference  on Learning  Representations,  ICLR 2015; 2015 . 
+[38] Fletcher R . Practical methods  of optimization.  John Wiley and sons; 1987 . 
+[39] Mohri M , Rostamizadeh  A , Talwalkar  A . Foundations  of machine  learning.  MIT 
+press; 2018 . 
+[40] Paszke A , Gross S , Chintala S , Chanan G , Yang E , DeVito Z , Lin Z , Desmaison  A , 
+Antiga L , Lerer A . Automatic  differentiation  in pytorch. In: Workshop  Proceed-  
+ings of Neural Information  Processing  Systems;  2017 . 
+[41] Pontaza J , Reddy J . Least-squares  ﬁnite element formulations  for 
+one-dimensional  radiative  transfer. J Quant Spectrosc  Radiat Transfer 
+2005;95(3):387–406  . 
+[42] Cengel Y , Özi M , et al. Radiation  transfer in an anisotropically  scattering  plane–
+parallel medium with space-dependent  albedo ω(x). J Quant Spectrosc  Radiat 
+Transfer 1985;34(3):263–70  . 
+[43] Jagtap AD , Kawaguchi  K , Karniadakis  GE . Adaptive  activation  functions  accel- 
+erate convergence  in deep and physics-informed  neural networks.  J Comput 
+Phys 2020;404:109126  . 
+[44] Richling S , Meinköhn  E , Kryzhevoi  N , Kanschat  G . Radiative  transfer 
+with ﬁnite elements-i.  basic method and tests. Astronomy  & Astrophysics  
+2001;380(2):776–88  . 
+[45] Graziani F . The prompt spectrum  of a radiating  sphere: benchmark  solutions  
+for diffusion  and transport.  In: Computational  methods  in transport:  veriﬁca- 
+tion and validation,  LNCSE-62.  Springer;  2008. p. 151–67 . 
+[46] Zhang W , Howell L , Almgren  A , Burrows A , Dolence J , Bell J . Castro: a new 
+compressible  astrophysical  solver. iii. multigroup  radiation  hydrodynamics.  As- 
+trophys J (supplement  series) 2013;204(7):27pp  . 
+[47] Castor JI . Radiation  hydrodynamics.  Cambridge  University  Press; 2004 . 
+[48] Mishra S, Rusch TK, 2020. Enhancing  accuracy  of deep learning algorithms  
+by training with low-discrepancy  sequences.  Preprint,  available  as arXiv: 2005. 
+12564 . 
+17 

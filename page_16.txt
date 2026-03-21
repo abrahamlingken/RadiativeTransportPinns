@@ -1,0 +1,87 @@
+S. Mishra and R. Molinaro  Journal of Quantitative  Spectroscopy  & Radiative  Transfer 270 (2021) 107705 
+with constants  deﬁned  as, 
+C = max /braceleftBig 2 
+κ, 2 
+κV HK /parenleftbig(R ∗
+sb ) 2 /parenrightbig
+, 2 C /epsilon1
+κ/parenleftbig(R ∗
+int ) 2 /parenrightbig
+, 2 C /epsilon1
+κC N −2 s 
+S /bracerightBig 
+, (B.9) 
+where C is deﬁned  in (A.4) . Here, C /epsilon1is a constant  that depends  on κand is deﬁned  in (B.14) . 
+Proof. We drop the θ∗dependence  in the residuals  (2.11), (2.12) , for notational  convenience  and denote  the residuals  as R ∗
+int , R ∗
+sb . Deﬁne,  
+E s (u ∗, /Phi1) := N S /summationdisplay 
+i =1 w S 
+i /Phi1(ω , ω S 
+i , ν, νS 
+i ) u ∗(x, ω S 
+i , νS 
+i ) −/integraldisplay 
+/Lambda1/integraldisplay 
+S /Phi1(ω , ω /prime , ν, ν/prime ) u ∗(x, ω /prime , ν/prime ) dω /prime dν/prime . (B.10) 
+It is straightforward  to derive from the radiative  transfer  Eq. (B.1) and the deﬁnition  of residuals  (2.11), (2.12) , that the error ˆ u = u ∗−u , 
+satisﬁes  the following  integro-differential  equation,  
+(k + σ) ˆ u = −ω ·∇ x ˆ u + σ
+s d /integraldisplay 
+/Lambda1/integraldisplay 
+S /Phi1(ω , ω /prime , ν, ν/prime ) ˆ u (t, x, ω /prime , ν/prime ) dω /prime dν/prime + R ∗
+int + E s (u ∗, /Phi1) , 
+ˆ u (t, x, ω, ν) = R ∗
+sb , (x, ω, ν) ∈ /Gamma1s 
+− (B.11) 
+Multiplying  ˆ u on both sides of the ﬁrst equation  in (B.11) , we obtain,  
+(k + σ) ˆ u 2 = −ω ·∇ x /parenleftbigg
+ˆ u 2 
+2 /parenrightbigg
++ σ
+s d /integraldisplay 
+/Lambda1/integraldisplay 
+S /Phi1(ω , ω /prime , ν, ν/prime ) ˆ u (t, x, ω /prime , ν/prime ) ˆ u (t, x, ω , ν) dω /prime dν/prime 
++ R ∗
+int ˆ u + E s (u ∗, /Phi1) ˆ u (B.12) 
+Integrating  the above over D ×S ×ν, integrating  by parts, using the assumed  lower and upper bounds  on k, σ, we obtain,  
+(k min + σmin ) /integraldisplay 
+D ×S×νˆ u 2 dz ≤/integraltext 
+/Gamma1s 
+−(R ∗
+sb ) 2 ds (x ) dωdν+ I + /integraltext 
+D ×S×ν(R ∗
+int ˆ u + E s (u ∗, /Phi1) ˆ u ) dz, (B.13) 
+with term Ideﬁned  and estimated  by, 
+I = /integraldisplay 
+D ×S×/Lambda1σ
+s d /integraldisplay 
+/Lambda1/integraldisplay 
+S /Phi1(ω , ω /prime , ν, ν/prime ) ˆ u (x, ω /prime , ν/prime ) ˆ u (x, ω , ν) dω /prime dν/prime dνdω dx, 
+≤σmax + /bardbl /Psi1/bardbl L ∞ 
+s d /integraldisplay 
+D ×S×/Lambda1ˆ u 2 (x, ω, ν) dz. 
+From the assumption  (B.6) , there exists an /epsilon1> 0 such that k min + σmin −σmax + /bardbl /Psi1/bardbl L ∞ 
+s d −2 /epsilon1> κ
+2 , we use the /epsilon1-version  of Cauchy’s  inequality,  
+ab ≤/epsilon1a 2 + C /epsilon1b 2 , (B.14) 
+to further  estimate  (B.13) as, 
+/integraldisplay 
+D ×S×/Lambda1ˆ u 2 d z ≤2 
+κ/integraldisplay 
+/Gamma1s 
+−(R ∗
+sb ) 2 d s (x ) d ωd ν+ 2 C /epsilon1
+κ/parenleftBigg /integraldisplay 
+D ×S×ν(R ∗
+int ) 2 + (E s (u ∗, /Phi1)) 2 d z /parenrightBigg 
+(B.15) 
+By using the estimates  (A.14) and (A.15) and identifying  constants,  we obtain the desired  bound (B.8) on the generalization  error (B.4) . /square
+As for the time-dependent  case, the bound (B.8) should be considered  in the sense of if the PINN is trained  well, it generalizes  well . 
+Moreover,  the bound,  and consequently,  the PINN does not suffer from a curse of dimensionality  by the same argument  as in the time- 
+dependent  case. Infact, the logarithmic  corrections  to the linear decay of the rhs in (B.8) can be ignored  at an even smaller  number  of 
+training  points. 
+The assumption  (B.6) plays a key role in the derivation  of the bound (B.8) . A careful  inspection  of this assumption  reveals  that the 
+scattering  coeﬃcient  is not allowed  to vary over a large range, unless there is enough  absorption  in the medium.  However,  there is no 
+restriction  on the range of scales over which the absorption  coeﬃcient  can vary. 
+16 

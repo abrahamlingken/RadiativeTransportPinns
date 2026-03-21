@@ -1,0 +1,47 @@
+S. Mishra and R. Molinaro  Journal of Quantitative  Spectroscopy  & Radiative  Transfer 270 (2021) 107705 
+Table 6 
+Results for the inverse problem for radiative  transfer. 
+N int N sb N d K −1 ˜ d λ E T || u −u ∗|| L 2 || k −k ∗|| L 2 || G −G ∗|| L 2 Training Time 
+16384 120 4096 8 20 1.0 0.00094 0.65 % 2.8 % 0.073 % 1 hr 44 min 
+Fig. 7. Results for the PINNs Algorithm  4.1 for the inverse problem for radiative  transfer. The PINNs approximation  to the incident radiation  and absorption  coeﬃcient  are 
+plotted along the diagonal of the unit cube and compared  with the measured  data ¯G and ground truth absorption  coeﬃcient  k given by (4.4) . 
+agrees reasonably  well with the ground  truth in (4.4) , with an error of less than 3% . Also the radiative  intensity  is approximated  to very 
+high accuracy,  with a generalization  error below 1% . This is even more impressive  if one consider  that the problem  is solved with a 
+computational  time of approximately  100 minutes.  
+5. Discussion  
+Accurate  numerical  approximation  of the radiative  transfer  Eqs. (1.1) is considered  very challenging  as the underlying  problem  is high- 
+dimensional,  with 7-dimensions  in the most general  case. Moreover,  the presence  of different  physical  effects such as emission,  absorption  
+and scattering  as well as varying  optical parameters  in the surrounding  medium  further  complicates  design of eﬃcient  numerical  algo- 
+rithms.  As discussed  in the introduction,  existing  numerical  methods  can suffer from the so-called  curse of dimensionality  and require  very 
+large amount  of computational  resources  to achieve  desired  accuracy.  
+Hence, there is a need for designing  algorithms  for simulating  radiative  transfer,  that are easy to implement  and fast (in terms of 
+computational  run time) while still being accurate.  We proposed  such an algorithm  in this article. Our Algorithm  2.1 is based on physics  
+informed  neural networks  (PINNs)  i.e. deep neural networks  for approximating  the radiative  intensity  in (1.1) . The deep neural network  is 
+trained  by using a gradient  descent  method  to minimize  a loss function  (2.15) , that consists  of the PDE residual  , resulting  from the neural 
+network  being plugged  into the radiative  transfer  Eq. (1.1) . Mismatches  with respect  to the initial and boundary  conditions  also contribute  
+to the loss function.  The residuals  are collocated  at training  points , which correspond  to quadrature  points with respect  to an underlying  
+quadrature  rule. We chose Sobol low-discrepancy  sequences  as training  points in order to alleviate  the curse of dimensionality.  
+The resulting  algorithm  is extremely  simple to code within standard  machine  learning  frameworks  such as TensorFlow  and Pytorch.  
+We presented  a suite of numerical  experiments  ranging  from the simplest  monochromatic  stationary  radiative  transfer  in one space di- 
+mension  (3.1) to the most general  time-dependent  polychromatic  radiative  transfer  in three space dimensions.  PINNs performed  very well 
+on all the numerical  experiments,  leading  to low errors with small run (training)  times. In particular,  the results were qualitatively  and 
+quantitatively  comparable  to published  results,  but possibly  at a fraction  of the cost. The experimental  results were supplemented  with 
+rigorous  error estimates  that bounded  the generalization  error (2.16) in terms of  computable  training errors  (2.17) and number of  quadra-  
+ture points, independent  of the underlying  dimension,  see bounds  (A.3) for details.  The predictions  of the error estimates  were validated  
+by the experiments.  
+Hence, we claim that the PINNs Algorithm  2.1 is a general  purpose,  simple to implement,  fast and accurate  simulator  for radiative  
+transfer.  Moreover,  we also presented  a (very) slightly  modiﬁed  version  of the PINN algorithm  to eﬃciently  simulate  a class of inverse 
+problems  for radiative  transfer.  In this problem,  the objective  is to compute  the unknown  absorption  coeﬃcient  from measurements  of the 
+incident  radiation.  To this end, we proposed  the deep neural network  based Algorithm  4.1 , which added a data ﬁdelity  term (4.2) to the 
+underlying  loss function  (4.3) . This algorithm  was also found to be both fast and accurate  in numerical  experiments.  Thus, we provide  
+novel machine  learning  algorithms  which are fast, easy to implement  and accurate  for eﬃciently  simulating  different  aspects  of radiative  
+transfer.  
+This article should be considered  as a ﬁrst step in adapting  machine  learning  algorithms  for simulating  radiative  transfer.  The proposed  
+algorithm  lends itself readily  to be extended  in the following  directions,  
+•The quantities  of interest  in many applications  of radiative  transfer,  particularly  in astrophysics,  are angular  moments  such as the 
+incident  radiation  G and heat ﬂux F , deﬁned  in (2.4) as these quantities  deﬁne the contribution  of radiation  to the total energy.  Thus, in 
+radiation  hydrodynamics,  one often resorts  to using moment  models.  However,  these moment  models  require  closure  relations,  which 
+might either be expensive  to compute  and/or inaccurate  (see Section  3.5 for a simple diffusion  based closure).  Given the computational  
+speed of PINNs, one can readily  employ  Algorithm  2.1 as the radiation  module  in a hydrodynamics  code, with angular  moments  and 
+the resulting  energy  being computed  from the neural network  approximation  of the radiative  intensity.  Another  option would be to 
+12 

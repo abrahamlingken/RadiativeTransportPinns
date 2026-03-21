@@ -1,0 +1,45 @@
+S. Mishra and R. Molinaro  Journal of Quantitative  Spectroscopy  & Radiative  Transfer 270 (2021) 107705 
+Fig. 3. Comparison  of the analytical  and PINNN radiative  intensity  at the physical domain boundaries  for the stationary  monochromatic  radiative  transfer in one-space  
+dimension.  
+Table 3 
+Results of the ensemble  training for the stationary  monochromatic  radia- 
+tive transfer in three space dimensions.  
+N int N sb K −1 ˜ d λ E T Training Time 
+16384 12288 8 24 0.1 0.00044 1 hr 9 min 
+These errors, presented  in Table 2 , are very small for both boundaries  and further  demonstrate  that the PINN is able to approximate  the 
+underlying  discontinuous  solution  to high-accuracy,  at very low computational  cost. One can possibly  further  reduce the error by using 
+adaptive  activation  functions  as suggested  in [43] . However,  we did not observe  any further  reduction  in the already  low training  error by 
+using adaptive  activation  functions.  
+3.3. Monochromatic  stationary  radiative  transfer  in three space dimensions  
+Next, we consider  a monochromatic  and stationary  version  of the general  radiative  transfer  Eqs. (1.1) , but in three space dimensions.  
+Already,  this problem  is in 5 dimensions  and is challenging  on account  of possibly  high computational  cost. We use the same setup 
+as in [5] (section  8.2, experiment  3) and consider  the problem  in the unit cube D = [0 , 1] 3 where a source,  located  at the center c = 
+(0 . 5 , 0 . 5 , 0 . 5) , radiates  into the surrounding  medium.  We consider  no further  radiation  entering  the domain  (zero Dirichlet  boundary  
+conditions).  The source term fis given by 
+f(x ) = k (x ) I b (x ) , I b (x ) = /braceleftbigg
+0 . 5 −r, r ≤0 . 5 
+0 , otherwise  (3.4) 
+with r = | x −c| . The absorption  coeﬃcient  is k (x ) = I b (x ) and isotropic  scattering  /Phi1= 1 , with unit scattering  coeﬃcient  σ(x ) = 1 is con- 
+sidered.  
+As before,  we use Sobol points for the interior  training  set S int and boundary  training  set S sb . Quadrature  points, corresponding  to a 
+Gauss quadrature  rule of order 20 are also used. We set N int = 16384 , N sb = 12288 and N S = 100 . The hyperparameters,  corresponding  to 
+the best performing  networks,  that result from ensemble  training  are presented  in Table 3 . We see from this table that this hyperparameter  
+conﬁguration  resulted  in a very low (total) training  error of 4 . 4 ×10 −4 , which is comparable  to those obtained  in the one-space  dimension  
+case (see Table 2 ). 
+As there is no analytical  solution  available  for the radiative  intensity  in this case, we cannot compute  generalization  errors. However,  
+based on the theory (see estimate  (A.3) ) and on the comparison  with the one-dimensional  case, we expect very low generalization  errors 
+when the training  errors are this low. Moreover,  we can perform  qualitative  comparisons  with the results obtained  in [5] with an eﬃcient  
+discrete  ordinate  method.  To this end, we plot three-dimensional  volume  plot for the incident  radiation  G (x ) (see the ﬁrst equation  in 
+(2.4) for deﬁnition)  in Fig. 4 . We see from this ﬁgure that the results with PINN are very similar  to the results with the discrete  ordinate  
+method,  shown in [5] (ﬁgure 8.12, page 126). Thus, we are able to approximate  the incident  radiation  to the same accuracy  as a dis- 
+crete ordinate  method.  The main differences  lies in the simplicity  of implementation  and very low computational  cost. We observe  from 
+Table 3 that the PINN was trained  in approximately  70 minutes  on a single GPU. This should be contrasted  with the very intricate  parallel  
+algorithm  of [5] , which required  considerably  more computational  time as the method  resulted  in very number  of degrees  of freedom  
+ranging  from 20 0 0 0 0 −60 0 0 0 0 . 
+3.4. Polychromatic  stationary  radiative  transfer  in three space dimensions  
+Next, we consider  the most general  case of the steady state radiative  transfer  Eq. (B.1) by following  the setup of [44] and references  
+therein,  where (B.1) is considered  in the unit cube D = [0 , 1] 3 and in the frequency  domain  /Lambda1= [ −6 , 6] , with normalization  of energy  
+groups.  Furthermore,  we consider  a simple case of zero absorption,  isotropic  kernel, zero Dirichlet  boundary  conditions  and spherical  
+symmetry.  Under the assumptions,  by integrating  Eq. (B.1) over the unit sphere S, we arrive at the following  ordinary  differential  equation  
+for the radial ﬂux i.e the incident  heat ﬂux (2.4) along the radius, 
+7 

@@ -1,0 +1,56 @@
+# ================================
+# Radiative Transport PINNs 项目依赖
+# ================================
+# 安装说明:
+# 1. 使用 conda (推荐):
+#    conda env create -f environment.yml
+# 2. 使用 pip:
+#    pip install -r requirements.txt
+#
+# 注意: PyTorch 需要根据您的系统配置选择合适的版本
+# 请访问 https://pytorch.org 获取安装指南
+# ================================
+
+# Python 版本要求
+# python>=3.8
+
+# 核心科学计算库
+numpy>=1.21.0,<2.0.0
+scipy>=1.7.0,<2.0.0
+
+# 深度学习框架 (请根据您的CUDA版本调整)
+# CPU版本:
+# torch==2.0.1+cpu
+# torchvision==0.15.2+cpu
+
+# CUDA 11.7版本:
+# torch==2.0.1+cu117
+# torchvision==0.15.2+cu117
+
+# CUDA 11.8版本:
+# torch==2.0.1+cu118
+# torchvision==0.15.2+cu118
+
+# CUDA 12.1版本:
+torch>=2.0.1
+torchvision>=0.15.2
+
+# 可视化库
+matplotlib>=3.5.0,<4.0.0
+seaborn>=0.11.0,<1.0.0
+
+# 数据处理库
+pandas>=1.3.0,<3.0.0
+
+# 采样库
+pyDOE>=0.3.8
+
+# VTK文件输出
+pyevtk>=1.2.0
+
+# 其他工具
+tqdm>=4.62.0
+
+# 用于matplotlib的LaTeX支持 (可选)
+# 如果需要使用LaTeX渲染公式，请安装以下库
+# matplotlib-latex>=0.1.0

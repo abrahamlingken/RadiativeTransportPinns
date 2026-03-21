@@ -1,0 +1,79 @@
+S. Mishra and R. Molinaro  Journal of Quantitative  Spectroscopy  & Radiative  Transfer 270 (2021) 107705 
+Table 5 
+Results for polychromatic  time-dependent  radiative  transfer in three space dimensions.  
+k νN int N sb N tb K −1 ˜ d λ E T Training Time 
+1 16384 12288 12288 4 40 0.1 0.0028 3 hr 25 min 
+10 16384 12288 12288 4 40 0.1 0.012 2 hr 15 min 
+To make the problem  tractable,  the authors  of [45] neglect  scattering  entirely  by setting  σ≡0 . Moreover,  the absorption  coeﬃcient  
+is modeled  by k (x, ν) = k ν, with νbeing the frequency.  The emission  term is modeled  by f(x, ν) = k νB (T m , ν) , resulting  in the following  
+form of the radiative  transfer  Eq. (1.1) , 
+1 
+c ∂u 
+∂t + ω ·∇ x u = k ν(B (T m , ν) −u ) , (t, x, n, ν) ∈ D T ×S ×/Lambda1. (3.9) 
+In the context  of radiation-(magneto)hydrodynamics,  one is mostly interested  in the angular  moments  of the radiative  intensity  that 
+naturally  arise in calculating  the contridbution  of radiation  to the total energy  of the ﬂuid (plasma).  Hence, it is customary  to integrate  
+(3.9) over the sphere Sto derive the following PDE for incident radiation (2.4) : 
+1 
+c ∂ 
+∂t G + ∇ x ·F = k ν/parenleftBig
+b(T m , ν) −G /parenrightBig
+, (t, x, ν) ∈ D T ×/Lambda1. (3.10) 
+with b(T , ν) = 4 πB (T , ν) . 
+However,  the PDE (3.10) is not closed and one needs a closure  for the ﬂux F in terms of the incident  radiation  G . It is common  practice  
+in astrophysics  to use the so-called  diffusion  approximation  of the ﬂux [47] : 
+F (t, x, ν) = −1 
+3 k ν∇G (t, x, ν) , (3.11) 
+resulting  in the following  PDE, 
+1 
+c ∂ 
+∂t G −1 
+3 k ν/Delta1G = k ν/parenleftBig
+b(T m , ν) −G /parenrightBig
+, (t, x, ν) ∈ D T ×/Lambda1. (3.12) 
+Deﬁning  the Knudsen  number  K = Lk ν(with L being a characteristic  length scale), it is well known  that the diffusion  approximation  is 
+justiﬁed  in the limit of K → ∞ . 
+Although  the PDE (3.12) is simpler  than the full radiative  transfer  Eq. (1.1) , eﬃcient  numerical  approximation  of (3.12) is still quite 
+challenging  as the incident  radiation  is a function  of 5 variables.  As it happens,  PINNs provide  an eﬃcient  method  for approximating  
+high-dimensional  parabolic  equations  such as (3.12) , see [32] Section  3 for details.  
+However,  by assuming  radial symmetry  and with the ﬂux approximation  given in (3.11) , the differential  Eq. (3.12) admits  an analytical  
+solution  satisfying  the initial and boundary  conditions  
+G (0 , r, ν) = b(T m , ν) , 
+G (t, r → ∞ , ν) = b(T m , ν) , 
+G (0 , R i , ν) = b(T s , ν) . (3.13) 
+The exact solution  for (3.12) then reads [45] , 
+G (t, r, ν) = b(T m , ν) + R i 
+r /parenleftBig
+b(T s , ν) −b(T m , ν) /parenrightBig
+F (t, r, ν) , 
+F (t, r, ν) = 1 
+2 exp (−3 k ν(r −R )) /braceleftbigg
+Erfc /parenleftBig/radicalbigg 
+3 k ν
+4 ct (r −R )−/radicalbig 
+k νct /parenrightBig
++Erfc /parenleftBig/radicalbigg 
+3 k ν
+4 ct (r −R )+ /radicalbig 
+k νct /parenrightBig/bracerightbigg
+. (3.14) 
+For this numerical  experiment,  we will approximate  the full time-dependent  radiative  transfer  Eqs. (3.9) with the PINNs Algorithm  2.1 . 
+To this end, we consider  (3.9) in the spatial domain  D enclosed  between  two spheres  with radii R i = 2 and R e = 4 . Moreover,  we introduce  
+an auxiliary  temporal  variable  τ= ctto rescale  time to [0,1], whereas  the energy  group ranges between  10 15 and 10 18 . We set T s = 150 eV 
+and T m = 120 eV . 
+The PINNs Algorithm  2.1 employs  Sobol points in the interior,  spatial and temporal  boundary  training  sets and we set N int = 16384 , 
+N sb = N tb = 12228 . Moreover,  we solve this problem  for two different  values of the (constant  in frequency)  absorption  coeﬃcient  i.e k ν= 1 
+and k ν= 10 , resulting  in two different  Knudsen  numbers  of K = 2 and K = 20 , respectively.  Given the challenging  nature of this prob- 
+lem, we choose  slightly  different  ranges of the hyperparameters,  presented  in tabel 1 for ensemble  training  and also use 20 retrainings,  
+corresponding  to different  random  starting  values for the weights  and biases in the training  procedure.  The resulting  best performing  con- 
+ﬁgurations  are reported  in Table 5 . We observe  from this table that PINNs provide  a very low training  error of 2 . 8 ×10 −3 , for the K = 2 
+case. This training  error is comparable  to the training  errors for the previous  two examples.  The training  error increases  by a factor of 4 
+for the K = 20 case, but still remains  relatively  low. 
+As we do not have exact analytical  formulas  for the full radiative  intensity,  it is not possible  to compute  generalization  errors. However  
+to ascertain  the quality  of the solution,  we compare  with the exact solution  (3.14) of the diffusion  Eq. (3.12) for the incident  radiation.  
+This comparison  is shown as contour  plots for the incident  radiation  in the (r, ν) -plane (with rdenoting  the radial direction)  in Fig. 5 
+as well as one-dimensional  cross-sections  for different  values of the radius rin Fig. 6 . As seen from both these ﬁgures,  there is good 
+agreement  between  the incident  radiation,  computed  by a Gauss quadrature  of the PINN approximation  to the radiative  intensity  in (3.9) , 
+and the analytical  solution  of the diffusion  approximation  (3.12) for the K = 20 case. This is not unexpected  as the diffusion  approximation  
+is accurate  for large Knudsen  numbers.  On the other hand, there is a signiﬁcant  difference  between  the incident  radiation,  computed  by a 
+Gauss quadrature  of the PINN approximation  to the radiative  intensity  in (3.9) , and the analytical  solution  of the diffusion  approximation  
+9 

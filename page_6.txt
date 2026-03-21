@@ -1,0 +1,42 @@
+S. Mishra and R. Molinaro  Journal of Quantitative  Spectroscopy  & Radiative  Transfer 270 (2021) 107705 
+Table 2 
+Results for monochromatic  stationary  radiative  transfer in one space dimension.  
+N int N sb K −1 ˜ d λ E T || u −−u ∗
+−|| L 2 || u + −u ∗
++ || L 2 Training Time 
+8192 2048 8 24 0.1 0.00016 0.07 % 0.29 % 57 min 
+Fig. 2. Contour plot of the radiative  intensity  u (x, μ) for the 1D monochromatic  experiment.  
+3.2. Monochromatic  stationary  radiative  transfer  in one space dimension  
+We begin with the much simpler  case of steady state radiative  transfer  in the one space dimension,  also referred  to as slab geometry  
+[4] . In this case, the radiative  transfer  Eqs. (1.1) simplify  to, 
+μ∂ 
+∂x u (x, μ) + /parenleftBig
+σ(x ) + k (x ) /parenrightBig
+u (x, μ) = σ(x ) 
+2 /integraltext 1 
+−1 /Phi1(μ, μ/prime ) u (z, μ) dμ/prime , μ= cos (θ) , (x, μ) ∈ [0 , 1] ×[ −1 , 1] . (3.1) 
+We follow the setup of [41] where the authors  benchmarked  least squares  ﬁnite element  methods  for one-dimensional  radiative  transfer  
+on this problem.  As in [41] , the following  inﬂow boundary  conditions  are imposed:  
+u (0 , μ) = 1 , μ∈ (0 , 1] , 
+u (1 , μ) = 0 , μ∈ [ −1 , 0) . (3.2) 
+Note that the boundary  conditions  allow for possible  discontinuities  at μ= 0 . The coeﬃcients  and scattering  kernel are, 
+σ(x ) = x, k (x ) = 0 , /Phi1(μ/prime , μ) = L /summationdisplay 
+/lscript =0 d /lscript P /lscript (μ) P /lscript (μ/prime ) , d 0 = 1 , (3.3) 
+with P /lscript (μ) denoting  the Legendre  polynomial  of order /lscript . We employ  the sequence  of coeﬃcients  d /lscript = 
+{ 1 . 0 , 1 . 98398 , 1 . 50823 , 0 . 70 075 , 0 . 23489 , 0 . 05133 , 0 . 0 0760 , 0 . 0 0 048 } , proposed  in [41] . Although  only in 2 dimensions,  this problem  
+is nevertheless  considered  rather challenging  on account  of the possible  presence  of discontinuities.  
+We use the PINNs Algorithm  2.1 to approximate  (3.1) , with Sobol points for the interior  training  set S int and spatial boundary  training  
+set S sb . Similarly,  a Gauss-Legendre  quadrature  rule of order 20 is used for approximating  the integral  with the scattering  kernel. We set 
+N int = 8192 , N sb = 2048 and N S = 10 , for this experiment.  The hyperparameters  that resulted  from the ensemble  training  are presented  in 
+Table 2 . As seen from the table, a very low training  error is obtained  in this case. A contour  plot of the resulting  radiative  intensity  in 
+(x, μ) -plane is presented  in Fig. 2 . The results are very similar  to those obtained  with a least squares  ﬁnite element  method  in [41] (com- 
+pare Fig. 2 with Fig. 3 of [41] ). It is interesting  to note that this very good qualitative  match with the least-squares  ﬁnite element  method  
+is obtained  with a training  time of slightly  less than 1 hour. 
+Another  attractive  feature  of this simpliﬁed  problem  lies in the fact that the authors  in [42] obtained  an exact analytical  solution  
+for it. Although  it is very complicated  to evaluate  this solution  for the whole (x, μ) -plane,  its values on the boundaries  can be readily  
+evaluated  i.e. we can readily  compute  u −(μ) = u (0 , μ) and u + (μ) = u (1 , μ) . We do so and compare  the exact solution  with the trained  
+PINN, denoted  by u ∗
+±. These results are plotted  in Fig. 3 . We see from this ﬁgure that the PINN is able to very accurately  approximate  
+the discontinuous  exact solution  at the boundary.  A quantitative  comparison  in performed  by computed  the errors u ±−u ∗
+±in L 2 -norm.  
+6 

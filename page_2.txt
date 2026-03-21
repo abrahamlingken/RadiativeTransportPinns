@@ -1,0 +1,122 @@
+S. Mishra and R. Molinaro  Journal of Quantitative  Spectroscopy  & Radiative  Transfer 270 (2021) 107705 
+smooth  solutions  [8] , these methods  are well-known  to still suf- 
+fer from the curse of dimensionality,  see [5,9] . A particular  variant  
+of the spherical  harmonics,  the so-called  P 1 method,  is an example  
+of a class of ﬂux limited  diffusion  methods  [4] , which are widely 
+used for optically  thick media. 
+Moment  based methods  lead to another  class of numerical  
+methods  for simulating  radiative  transfer,  see [4] and references  
+therein.  For these methods,  one derives  a PDE for the so-called  
+incident  radiation  by integrating  (1.1) over the angular  domain  S. 
+The evolution  of the incident  radiation  is determined  by the heat 
+(radiation)  ﬂux , which is also the ﬁrst angular  moment.  The evo- 
+lution of the heat ﬂux has to be determined  from the second  an- 
+gular moment  of u , which is termed  as the pressure  tensor . These 
+hierarchy  of moments  have to be closed by suitable  closure  rela- 
+tions (see [4] and references  therein)  and the resulting  PDEs are 
+discretized  by ﬁnite elements  or ﬁnite differences.  These moment  
+based methods  can lead to inaccurate  approximation  of the inci- 
+dent radiation,  particularly  when suitable  closures  are not avail- 
+able. Finally in recent years, several  attempts  have been made to 
+design eﬃcient  ﬁnite element  methods  for the radiative  transfer  
+equation,  such as those based on sparse grids [10] or sparse ten- 
+sor product  ﬁnite element  spaces [2,10] . Although  these methods  
+can alleviate  the curse of dimensionality  in certain  cases, they 
+are rather complicated  to implement  and can still be computa-  
+tionally  expensive,  particularly  when higher-order  elements  are 
+used [5] . 
+Summarizing  the above discussion,  it is fair to conclude  that all 
+the proposed  methods  have some deﬁciencies,  in particular  in their 
+computational  cost for simulating  realistic  problems.  Thus, there is 
+a pressing  need to design a numerical  method  that is accurate,  fast 
+(in terms of computational  time), easy to use and able to deal with 
+the high dimensions  and optical heterogeneity  of the underlying  
+radiative  transfer  Eq. (1.1) . We aim to propose  such a numerical  
+method  in this article. 
+Our proposed  numerical  method  is based on deep neural net- 
+works [11] , i.e. functions  formed  by concatenated  compositions  of 
+aﬃne transformations  and scalar non-linear  activation  functions.  
+Deep neural networks  have been extremely  successful  at diverse  
+tasks in science  and engineering  [12] such as at image and text 
+classiﬁcation,  computer  vision, text and speech  recognition,  au- 
+tonomous  systems  and robotics,  game intelligence  and even pro- 
+tein folding  [13] . They are being increasingly  used in the context  
+of scientiﬁc  computing,  particularly  for different  aspects  of numer-  
+ical solutions  of PDEs [14–17]  and references  therein.  
+As deep neural networks  possess  the so-called  universal  approx-  
+imation  property  or ability to accurately  approximate  any continu-  
+ous (even measurable)  function  [18] , they can be used as ansatz 
+(search)  spaces for solutions  of PDEs. This property  lays the foun- 
+dation for the so-called  Physics  informed  neural networks  (PINNs)  
+which collocate  the PDE residual  on training  points of the ap- 
+proximating  deep neural network.  First proposed  in [19,20]  , PINNs 
+been revived  and developed  in signiﬁcantly  greater  detail recently  
+in the pioneering  contributions  of Karniadakis  and collaborators.  
+PINNs have been successfully  applied  to simulate  a variety  of for- 
+ward and inverse  problems  for PDEs, see [21–31]  and references  
+therein.  
+In recent papers [32] (for the forward  problem)  and [33] (for 
+the inverse  problem),  the authors  analyzed  PINNs and provide  a 
+rigorous  explanation  for the eﬃciency  of PINNs, based on stabil- 
+ity of the underlying  PDEs. A surprising  observation  in [32,33]  was 
+the ability of PINNs to overcome  the curse of dimensionality,  at 
+least for some PDEs. This observation,  together  with the well- 
+documented  ability of PINNs to approximate  PDEs is a starting  
+point of this paper where we adapt PINNs to solve the radiative  
+transfer  Eq. (1.1) . The main contributions  of the current  paper are 
+as follows,  •We present  a novel algorithm  for approximating  the radiative  
+transfer  Eq. (1.1) in a very general  setting.  Our algorithm  is 
+based on suitable  physics  informed  neural networks  (PINNs).  
+•We analyze  the proposed  algorithm  by rigorously  proving  an 
+estimate  on the so-called  generalization  error of the PINN. This 
+estimate  shows that as long as the PINN is trained  well, it ap- 
+proximates  the solution  of (1.1) to high accuracy.  
+•We present  a suite of numerical  experiments  to illustrate  the 
+accuracy  and eﬃciency  of the proposed  algorithm.  
+•A major advantage  of PINNs is their ability to approximate  in- 
+verse problems  (with the same level of complexity  as the for- 
+ward problem).  Hence, we will also modify  PINNs to approx-  
+imate an inverse  problem  for radiative  transfer,  namely  deter- 
+mining  the unknown  absorption  or scattering  coeﬃcients  in 
+(1.1) from measurements  of moments  of the radiative  intensity.  
+Thus, we present  a novel, fast, robust,  accurate  and easy to 
+code and implement  algorithm  for simulating  the general  form of 
+the radiative  transfer  Eqs. (1.1) and provide  analysis  and numeri-  
+cal experiments  to demonstrate  that this algorithm  eﬃciently  ap- 
+proximates  both forward  and inverse  problems  for radiative  trans- 
+fer. The rest of the paper is organized  as follows,  in Section  2 , 
+we describe  the PINNs algorithm  and provide  an estimate  on the 
+underlying  generalization  error. Numerical  experiments  are pre- 
+sented in Section  3 , PINNs for inverse  problems  are described  in 
+Section  4 and the proposed  method  and results are discussed  in 
+Section  5 . 
+2. Physics  informed  neural networks  for approximating  () 
+In this section,  we describe  the PINNs algorithm  for simulating  
+radiative  transfer.  We start by elaborating  on the underlying  PDE 
+(1.1) . 
+2.1. The model. 
+We model radiative  transfer  in a static medium  by the evo- 
+lution Eq. (1.1) for the radiative  intensity  u . This partial integro-  
+differential  equation  is supplemented  with the initial condition,  
+u (0 , x, ω, ν) = u 0 (x, ω, ν) , (x, ω, ν) ∈ D ×S ×/Lambda1, (2.1) 
+for some initial datum u 0 : D ×S ×/Lambda1/mapsto→ R . 
+Given that the radiative  transfer  Eq. (1.1) is a transport  equa- 
+tion , the boundary  conditions  are imposed  on the so-called  inﬂow 
+boundary  given by, 
+/Gamma1−= { (t, x, ω, ν) ∈ [0 , T ] ×∂D ×S ×/Lambda1: ω ·n (x ) < 0 } (2.2) 
+with n (x ) denoting  the unit outward  normal  at any point x ∈ ∂D 
+(the boundary  of the spatial domain  D ). We speciﬁc  the following  
+boundary  condition,  
+u (t, x, ω, ν) = u b (t, x, ω, ν) , (t, x, ω, ν) ∈ /Gamma1−, (2.3) 
+for some boundary  datum u b : /Gamma1−/mapsto→ R . 
+Given that the radiative  intensity  is a function  of 2 d + 1 - 
+variables,  it is essential  to ﬁnd suitable  low-dimensional  function-  
+als (observables)  to visualize  and interpret  it. To this end, one often 
+considers  physically  interesting  angular-moments  such as the inci- 
+dent radiation  (zeroth  angular  moment)  and heat ﬂux (ﬁrst angular  
+moment)  given by, 
+G (t, x, ν) = /integraldisplay 
+S u (t, x, ω, ν) dω (2.4) 
+F (t, x, ν) = /integraldisplay 
+S u (t, x, ω, ν) ωdω (2.5) 
+2 

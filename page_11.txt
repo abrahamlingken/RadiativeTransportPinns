@@ -1,0 +1,91 @@
+S. Mishra and R. Molinaro  Journal of Quantitative  Spectroscopy  & Radiative  Transfer 270 (2021) 107705 
+moments,  such as the incident  radiation  G or heat ﬂux F (2.4) . For simplicity  of exposition,  we choose  the following  concrete  inverse  
+problem;  
+Given measurements  of the incident  radiation  G (t, x, ν) , ﬁnd the unknown  absorption  coeﬃcient  k = k (x, ν) and the resulting  radiative  in- 
+tensity u (t, x, ω, ν) which solves the radiative  transfer  Eq. (1.1) with initial and boundary  conditions  ( 2.3 ) . 
+Other combinations  of the measured  and unknown  quantities  can be similarly  considered.  Clearly  this inverse  problem  is ill-posed  as 
+multiple  absorption  coeﬃcients  might lead to the same incident  radiation.  However,  we will aim to obtain one of the possible  absorption  
+coeﬃcients,  consistent  with the measured  incident  radiation.  
+To this end, we slightly  modify  the PINNs algorithm  as described  below, 
+4.1. PINNs For the inverse problem  
+Following  [29,33]  , we seek to ﬁnd the deep neural networks  k θk : D ×/Lambda1/mapsto→ R + and u θu : D T ×S ×/Lambda1/mapsto→ R , with the concatenated  pa- 
+rameter  vector θ= { θk , θu } ∈ /Theta1, approximating  the absorption  coeﬃcient  and radiative  intensity,  respectively.  
+In addition  to the interior  training  set S int , spatial boundary  training  set S sb and temporal  boundary  training  set S tb , deﬁned  in 
+Section  2 , we also required  the so-called  data training  set S d = { y d 
+j } , for 1 ≤j ≤N d , and y d 
+j ∈ D T ×/Lambda1. 
+The residuals  for initial and boundary  conditions  are given by R tb , R sb (2.12) . We slightly  modify  the PDE residual  (2.11) to, 
+R int,θ:= 1 
+c ∂ t u θu + ω ·∇ x u θu + k θk u θu + σ/parenleftbigg
+u θu −1 
+s d N S /summationdisplay 
+i =1 w S 
+i /Phi1(ω , ω S 
+i , ν, νS 
+i ) u θu (t, x, ω S 
+i , νS 
+i ) /parenrightBig
+−f. (4.1) 
+We also need the data residual  , 
+R d,θ:= G /parenleftbig
+u θu /parenrightbig
+−¯G (t, x, ν) , ∀ (t, x, ν) ∈ D T ×/Lambda1, (4.2) 
+with G being the incident  radiation  calculated  from (2.4) with a Gauss quadrature  approximation  of the angular  integral  and ¯G being the 
+measured  incident  radiation.  
+The resulting  loss function  is, 
+J(θ) := N d /summationdisplay 
+j=1 w d 
+j | R d,θ(y d 
+j ) | 2 + N sb /summationdisplay 
+j=1 w sb 
+j | R sb,θ(z sb 
+j ) | 2 + N tb /summationdisplay 
+j=1 w tb 
+j | R tb,θ(z tb 
+j ) | 2 + λN int /summationdisplay 
+j=1 w int 
+j | R int,θ(z int 
+j ) | 2 (4.3) 
+with the residuals  R d , R sb , R tb and R int deﬁned  in (4.2), (2.12),(2.11)  , and w d , y d , w sb , z sb , w sb , z sb , w int , z int being the quadrature weights  
+and training  points, corresponding  to the data, boundary  and interior  training  sets. 
+The PINNs algorithm  for the inverse  problem  is summarized  as, 
+Algorithm  4.1. Algorithm  to ﬁnd a physics  informed  neural network  (PINN) to approximate  the absorption  coeﬃcient  k and the radiative  
+intensity  u solving  (1.1) , and consistent  with measured  data G for the incident  radiation.  
+Inputs:  Underlying  domain  D T ×S ×/Lambda1, coeﬃcients  and data for the radiative  transfer  equation  (1.1), measured  incident  radiation  G , 
+quadrature  points and weights  for underlying  quadrature  rules, non-convex  gradient  based optimization  algorithms.  
+Goal: Find PINN (k ∗, u ∗) = /parenleftBig
+k θ∗
+k , u θ∗u /parenrightBig
+for approximating  the inverse  problem  for radiative  transfer  
+Step 1: Choose  the training  sets as described  in Section  2.2 and in this subsection.  
+Step 2: For an initial value of the weight  vector θ∈ /Theta1, evaluate  the neural networks  u θu , k θk (2.7), the PDE residual  (4.1), the data residual  
+(1.2), the boundary  residuals  (2.12), the loss function  (4.3) and its gradients  to initialize  the underlying  optimizationalgorithm.  
+Step 3: Run the optimization  algorithm  till an approximate  local minimum  θ∗of (4.3) is reached.  The map u ∗= u θ∗u is the desired  PINN for 
+approximating  the solution  u of the radiative  transfer  equation  and the map k ∗= k θ∗
+k is the corresponding  absorption  coeﬃcient.  
+4.2. A Numerical  Experiment.  
+The monochromatic  stationary  version  of the radiative  transfer  Eq. (1.1) in three space dimensions,  is used in this numerical  experi-  
+ment. The spatial domain  is the unit cube D = [0 , 1] 3 , with scattering  coeﬃcient  σ= 0 . 5 , scattering  kernel /Phi1≡1 . The source term fand 
+boundary  term u b are generated  using the following  synthetic  absorption  coeﬃcient  and exact solution,  
+k (x ) = 3 /productdisplay 
+i =1 x 2 
+i , u (x, ω) = 3 
+16 π(1 + (ω ·ω /prime ) 2 ) 3 /productdisplay 
+i =1 x i (x i −1) , n /prime = /parenleftbigg
+1 √ 
+3 , 1 √ 
+3 , 1 √ 
+3 /parenrightbiggT 
+(4.4) 
+The measured  incident  radiation  ¯G in (4.2) is calculated  from the radiative  intensity  u above by using the formula  (2.4) . 
+For this numerical  experiment,  we also impose  boundary  conditions  on the neural network  approximating  the absorption  coeﬃcient  
+k θk to approximately  match the values of k , deﬁned  in (4.4) on the boundary  of D , leading  to an additional  term in (4.3) . Finally,  in order 
+to ensure uniqueness  of the absorption  coeﬃcient,  we include  in the loss function,  the so-called  Tikhonov  regularization:  
+J T (θ) = λk ||∇k θ|| 2 
+2 , λk = 0 . 001 . (4.5) 
+We use Sobol points for the interior  training  points and uniformly  distributed  random  points are used as data training  points, with N int = 
+16384 , N d = 4096 . The resulting  best performing  hyperparameter  conﬁguration  after ensemble  training  is presented  in Table 6 . 
+In Fig. 7 we plot the incident  radiation  G and the absorption  coeﬃcient  k , along the diagonal  of the unit cube, computed  with the 
+PINNs Algorithm  4.1 . As observed  from this ﬁgure, the incident  radiation  is almost identical  to the measured  data ¯G . This is further  
+veriﬁed  from Table 6 , from which we observe  a very low L 2 -error for the incident  radiation.  On the other hand, the absorption  coeﬃcient  
+11 

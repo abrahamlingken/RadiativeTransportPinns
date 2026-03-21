@@ -1,0 +1,82 @@
+S. Mishra and R. Molinaro  Journal of Quantitative  Spectroscopy  & Radiative  Transfer 270 (2021) 107705 
+leverage  the ability of PINNs to directly  perform  hydrodynamic  simulations  (see [30,32]  ) and have a full PINN simulation  of radiation  
+hydrodynamics.  Both approaches  should be developed  and tested. 
+•We covered  the inverse  problem  for radiative  transfer  brieﬂy in Section  4 . Algorithm  4.1 can be readily  extended  to many other inverse  
+problems  involving  radiative  transfer,  for instance  ﬁnding  emission  and scattering  coeﬃcients  from measurements  of incident  radiation  
+and heat ﬂuxes at a few points. A careful  exposition  and analysis  of the resulting  algorithms  and their application  in practical  contexts  
+will be the basis of future papers.  
+Declaration  of Competing  Interest  
+The authors  declare  that they have no known  competing  ﬁnancial  interests  or personal  relationships  that could have appeared  to 
+inﬂuence  the work reported  in this paper. 
+CRediT  authorship  contribution  statement  
+Siddhartha  Mishra:  Writing  - original  draft, Supervision.  Roberto  Molinaro:  Writing  - original  draft. 
+Acknowledgements  
+The research  of SM and RM was partially  supported  by the European  Research  Council  (ERC) under ERCCoG  770880  COMANFLO.  SM 
+thanks Dr. Roger Käppeli  of SAM, ETH Zürich for his inputs on radiation  and astrophysics.  
+Appendix  A. Estimates  on the generalization  error for the radiative  transfer  Eq. (1.1) 
+In order to derive an error estimate  for the PINNs algorithm,  we need to make some assumptions  on the scattering  kernel /Phi1in (1.1) . 
+We follow standard  practice  and assume  that it is symmetric  /Phi1(ω , ω /prime , ν, ν/prime ) = /Phi1(ω /prime , ω, ν/prime , ν) . Moreover,  the following  function,  
+/Psi1(ω, ν) = /integraldisplay 
+S×/Lambda1/Phi1(ω, ω /prime , ν, ν/prime ) d ω /prime d ν/prime , (A.1) 
+is essentially  bounded  i.e. /Psi1∈ L ∞ (S ×/Lambda1) . We have the following  estimate  on the generalization  error (2.16) , 
+Lemma  A.1. Let u ∈ L 2 (D ) be the unique weak solution  of the radiative  transfer  Eq. (1.1) , with absorption  coeﬃcient  0 ≤k ∈ L ∞ (D ×/Lambda1) , scatter-  
+ing coeﬃcient  0 ≤σ∈ L ∞ (D ×/Lambda1) and a symmetric  scattering  kernel /Phi1∈ C /lscript (S ×/Lambda1×S ×/Lambda1) , for some /lscript ≥1 , such that the function  /Psi1(deﬁned  
+in (A.1) ) is in L ∞ (S ×/Lambda1) . Let u ∗= u θ∗∈ C /lscript (D ) be the output of the PINNs Algorithm  2.1 for approximating  the radiative  transfer  Eq. (1.1) , such 
+that 
+max { V HK (u ∗) , V HK /parenleftbig
+R int,θ∗/parenrightbig} < + ∞ , (A.2) 
+with V HK being the so-called  Hardy-Krause  variation  (see [36,48] for the precise deﬁnition).  We also assume  that the initial data u 0 and boundary  
+data u b are of bounded  Hardy-Krause  variation.  Then, under the assumption  that Sobol points are used as the training  points S int , S sb , S tb in 
+Algorithm  2.1 and Guass-quadrature  rule of order s = s (/lscript ) is used in approximating  the scattering  kernel in the residual  (2.11) , we have the 
+following  estimate  on the generalization  error, 
+(E G ) 2 ≤C /parenleftbig(E tb 
+T ) 2 + c(E sb 
+T ) 2 + c(E int 
+T ) 2 /parenrightbig
++ C C ∗/parenleftbigg
+( log (N tb )) 2 d 
+N tb + c ( log (N sb )) 2 d 
+N sb + c ( log (N int )) 2 d+1 
+N int + cN −2 s 
+S /parenrightbigg
+(A.3) 
+with constants  deﬁned  as, 
+C = T + c ˆ C T 2 e c ˆ C T , ˆ C = 2 + 2(/bardbl σ/bardbl L ∞ + /bardbl /Psi1/bardbl L ∞ ) 
+s d 
+C ∗= max /braceleftbig
+V HK /parenleftbig(R ∗
+tb ) 2 /parenrightbig
+, V HK /parenleftbig(R ∗
+sb ) 2 /parenrightbig
+, V HK /parenleftbig(R ∗
+int ) 2 /parenrightbig
+, C /bracerightbig
+C = C ( | D | , /bardbl /Phi1/bardbl C /lscript , /bardbl u ∗/bardbl C /lscript ) (A.4) 
+Proof. We drop the θ∗dependence  in the residuals  (2.11), (2.12) , for notational  convenience  and denote  the residuals  as R ∗
+int , R ∗
+sb , R ∗
+tb . 
+Deﬁne,  
+E(u ∗, /Phi1) := N S /summationdisplay 
+i =1 w S 
+i /Phi1(ω , ω S 
+i , ν, νS 
+i ) u ∗(t, x, ω S 
+i , νS 
+i ) −/integraldisplay 
+/Lambda1/integraldisplay 
+S /Phi1(ω , ω /prime , ν, ν/prime ) u ∗(t, x, ω /prime , ν/prime ) dω /prime dν/prime . (A.5) 
+It is straightforward  to derive from the radiative  transfer  Eq. (1.1) and the deﬁnition  of residuals  (2.11), (2.12) , that the error ˆ u = u ∗−u , 
+satisﬁes  the following  integro-differential  equation,  
+1 
+c ˆ u t + ω ·∇ x ˆ u = −(k + σ) ˆ u + σ
+s d /integraldisplay 
+/Lambda1/integraldisplay 
+S /Phi1(ω , ω /prime , ν, ν/prime ) ˆ u (t, x, ω /prime , ν/prime ) dω /prime dν/prime 
++ R ∗
+int + E(u ∗, /Phi1) . 
+ˆ u (0 , x, ω, ν) = R ∗
+tb , (x, ω, ν) ∈ D ×S ×/Lambda1, 
+ˆ u (t, x, ω, ν) = R ∗
+sb , (t, x, ω, ν) ∈ /Gamma1−×/Lambda1. (A.6) 
+13 

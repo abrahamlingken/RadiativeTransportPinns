@@ -20,7 +20,7 @@ ub_0 = 1.
 ub_1 = 0.
 strip = 0.05
 
-n_quad = 10
+n_quad = 20  # 论文使用Gauss-Legendre quadrature of order 20
 
 if torch.cuda.is_available():
     dev = torch.device('cuda')
@@ -86,12 +86,12 @@ def generator_samples(type_point_param, samples, dim, random_seed):
 
         return params
     elif type_point_param == "sobol":
-        # if n_time_step is None:
-        skip = random_seed
-        data = np.full((samples, dim), np.nan)
-        for j in range(samples):
-            seed = j + skip
-            data[j, :], next_seed = sobol_seq.i4_sobol(dim, seed)
+        # Use Scipy's Sobol generator instead of sobol_seq
+        sampler = qmc.Sobol(d=dim, scramble=False)
+        # Skip the first random_seed points to get different samples
+        if random_seed > 0:
+            sampler.fast_forward(random_seed)
+        data = sampler.random(n=samples)
         params = torch.from_numpy(data).type(torch.FloatTensor) * (extrema_f - extrema_0) + extrema_0
         return params
     elif type_point_param == "grid":
@@ -163,6 +163,12 @@ def add_collocations(n_collocation):
 
 
 def apply_BC(x_boundary, u_boundary, model):
+    """
+    应用论文Section 3.2的入射边界条件:
+    u(0, μ) = 1, μ ∈ (0, 1]  (入射)
+    u(1, μ) = 0, μ ∈ [-1, 0) (出射)
+    在 μ=0 处允许间断
+    """
     x = x_boundary[:, 0]
     mu = x_boundary[:, 1]
 
@@ -172,23 +178,33 @@ def apply_BC(x_boundary, u_boundary, model):
     n0_len = x0.shape[0]
     n1_len = x1.shape[0]
 
+    # 法向量: x=0处n=-1, x=1处n=1
     n0 = torch.tensor(()).new_full(size=(n0_len,), fill_value=-1.0)
     n1 = torch.tensor(()).new_full(size=(n1_len,), fill_value=1.0)
     n = torch.cat([n0, n1], 0).to(dev)
 
+    # 选择入射边界点: n·μ < 0
     scalar = n * mu < 0
 
     x_boundary_inf = x_boundary[scalar, :]
     u_boundary_inf = u_boundary[scalar, :]
+    
+    # 获取入射边界的x坐标和mu值
+    x_inf = x_boundary_inf[:, 0]
+    mu_inf = x_boundary_inf[:, 1]
 
-    where_x_equal_0 = x_boundary_inf[:, 0] == domain_values[0, 0]
-
-    u_boundary_inf = u_boundary_inf.reshape(-1, )
-    u_boundary_inf_mod = torch.where(where_x_equal_0, torch.tensor(ub_0).to(dev), u_boundary_inf)
+    # 构建目标边界值
+    # x=0 且 μ>0: u=1 (入射)
+    # x=1 且 μ<0: u=0 (出射)
+    u_target = torch.where(
+        x_inf == domain_values[0, 0],  # x=0边界
+        torch.tensor(ub_0).to(dev),    # u=1
+        torch.tensor(ub_1).to(dev)     # x=1边界, u=0
+    )
 
     u_pred = model(x_boundary_inf)
 
-    return u_pred.reshape(-1, ), u_boundary_inf_mod.reshape(-1, )
+    return u_pred.reshape(-1, ), u_target.reshape(-1, )
 
 
 def convert(vector):
@@ -204,9 +220,13 @@ def compute_generalization_error(model, extrema, images_path=None):
 
 
 def plotting(model, images_path, extrema, solid):
+    """
+    论文Section 3.2结果可视化
+    使用文献[42]的边界值进行对比 (Fig. 3)
+    """
     model.cpu()
     model = model.eval()
-    n = 500
+    n = 800
 
     x = np.linspace(domain_values[0, 0], domain_values[0, 1], n)
     mu = np.linspace(parameters_values[0, 0], parameters_values[0, 1], n)
@@ -215,36 +235,38 @@ def plotting(model, images_path, extrema, solid):
     sol = model(inputs)
     sol = sol.reshape(x.shape[0], mu.shape[0])
 
-    x_l = inputs[:, 0]
-    mu_l = inputs[:, 1]
-
-    exact = torch.sin(pi * mu_l) ** 2 * torch.cos(pi / 2 * x_l)
-    exact = exact.reshape(x.shape[0], mu.shape[0])
-
-    print(torch.mean(abs(sol - exact) / torch.mean(abs(exact))))
-
-    levels = [0.00, 0.006, 0.013, 0.021, 0.029, 0.04, 0.047, 0.06, 0.071, 0.099, 0.143, 0.214, 0.286, 0.357, 0.429, 0.5, 0.571, 0.643, 0.714, 0.786, 0.857, 0.929, 1]
-    norml = matplotlib.colors.BoundaryNorm(levels, 256)
-    plt.figure()
-    plt.contourf(x.reshape(-1, ), mu.reshape(-1, ), sol.detach().numpy().T, cmap='jet', levels=levels, norm=norml)
-    plt.axes().set_aspect('equal')
-    plt.colorbar()
-    plt.xlabel(r'$x$')
-    plt.ylabel(r'$\mu$')
-    plt.title(r'$u(x,\mu)$')
+    # PINN预测结果等高线图 (对应论文Fig. 2)
+    # 使用指数分布的levels，使颜色分布更均匀（避免蓝色区域过大）
+    # 在0-1范围内按指数分布设置30个等高线层级
+    levels_exp = np.power(np.linspace(0, 1, 35), 1.5)  # 指数1.5，让高值区域有更多分层
+    levels_exp = np.unique(np.round(levels_exp, 4))
+    
+    plt.figure(figsize=(9, 7))
+    ax = plt.gca()
+    
+    # 使用PowerNorm进行颜色归一化，使颜色分布更均匀
+    from matplotlib.colors import PowerNorm
+    norm = PowerNorm(gamma=0.6, vmin=0, vmax=1)  # gamma<1使低值区域压缩，高值区域扩展
+    
+    contour1 = ax.contourf(x.reshape(-1, ), mu.reshape(-1, ), sol.detach().numpy().T, 
+                           cmap='jet', levels=levels_exp, norm=norm, extend='both')
+    ax.set_aspect('equal')
+    cbar = plt.colorbar(contour1, ax=ax, fraction=0.046, pad=0.04)
+    cbar.set_label(r'$u(x,\mu)$', rotation=270, labelpad=20)
+    plt.xlabel(r'$x$', fontsize=12)
+    plt.ylabel(r'$\mu$', fontsize=12)
+    plt.title(r'PINN Prediction: $u(x,\mu)$', fontsize=14, fontweight='bold')
+    plt.tight_layout()
     plt.savefig(images_path + "/net_sol.png", dpi=400)
+    plt.close()
 
-    plt.figure()
-    plt.contourf(x.reshape(-1, ), mu.reshape(-1, ), exact.detach().numpy().T, cmap='jet')
-    plt.axes().set_aspect('equal')
-    plt.colorbar()
-    plt.xlabel(r'$x$')
-    plt.ylabel(r'$\mu$')
-    plt.title(r'$u(x,\mu)$')
-    plt.savefig(images_path + "/exact.png", dpi=400)
-
+    # ========== 边界值对比 (对应论文Fig. 3) ==========
+    # 文献[42]的精确解在边界的参考值
+    
+    # x=0 边界 (入射)
     x = np.linspace(0, 0, 1)
     mu = np.linspace(-1, 1, n)
+    # 文献[42]在x=0处的参考值 (μ>0时u≈1，μ<0时u从文献数据)
     theta_ex = [0 + pi, pi / 12 + pi, pi / 6 + pi, pi / 4 + pi, pi / 3 + pi, 5 * pi / 12 + pi, 0, pi / 12, pi / 6, pi / 4, pi / 3, 5 * pi / 12, pi / 2]
     mu_ex = np.cos(theta_ex)
     sol_ex = np.array([0.0079, 0.0089, 0.0123, 0.0189, 0.0297, 0.0385, 1, 1, 1, 1, 1, 1, 1])
@@ -256,15 +278,19 @@ def plotting(model, images_path, extrema, solid):
 
     err_1 = np.sqrt(np.mean((sol_ex.reshape(-1, ) - sol_err.reshape(-1, )) ** 2) / np.mean(sol_ex.reshape(-1, ) ** 2))
 
-    plt.figure()
+    plt.figure(figsize=(8, 5))
     plt.grid(True, which="both", ls=":")
-    plt.plot(mu, sol, color="grey", lw=2, label=r'Learned Solution')
-    plt.scatter(mu_ex, sol_ex, label=r'Exact Solution')
-    plt.xlabel(r'$\mu$')
+    plt.plot(mu, sol, color="C0", lw=2, label=r'PINN Prediction')
+    plt.scatter(mu_ex, sol_ex, color="red", s=50, zorder=5, label=r'Reference [42]')
+    plt.xlabel(r'$\mu = \cos(\theta)$')
     plt.ylabel(r'$u^-(x=0)$')
+    plt.title(r'Boundary comparison at $x=0$')
     plt.legend()
+    plt.tight_layout()
     plt.savefig(images_path + "/u0.png", dpi=400)
+    plt.close()
 
+    # x=1 边界 (出射)
     x = np.linspace(1, 1, 1)
     mu = np.linspace(-1, 1, n)
     theta_ex = [0 + pi, pi / 12 + pi, pi / 6 + pi, pi / 4 + pi, pi / 3 + pi, 5 * pi / 12 + pi, pi / 2 + pi, 0, pi / 12, pi / 6, pi / 4, pi / 3, 5 * pi / 12]
@@ -278,14 +304,17 @@ def plotting(model, images_path, extrema, solid):
 
     err_2 = np.sqrt(np.mean((sol_ex.reshape(-1, ) - sol_err.reshape(-1, )) ** 2) / np.mean(sol_ex.reshape(-1, ) ** 2))
 
-    plt.figure()
+    plt.figure(figsize=(8, 5))
     plt.grid(True, which="both", ls=":")
-    plt.plot(mu, sol, color="grey", lw=2, label=r'Learned Solution')
-    plt.scatter(mu_ex, sol_ex, label=r'Exact Solution')
-    plt.xlabel(r'$\mu$')
+    plt.plot(mu, sol, color="C0", lw=2, label=r'PINN Prediction')
+    plt.scatter(mu_ex, sol_ex, color="red", s=50, zorder=5, label=r'Reference [42]')
+    plt.xlabel(r'$\mu = \cos(\theta)$')
     plt.ylabel(r'$u^+(x=1)$')
+    plt.title(r'Boundary comparison at $x=1$')
     plt.legend()
+    plt.tight_layout()
     plt.savefig(images_path + "/u1.png", dpi=400)
+    plt.close()
 
     with open(images_path + '/errors.txt', 'w') as file:
         file.write("err_1,"

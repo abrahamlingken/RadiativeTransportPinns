@@ -1,0 +1,84 @@
+S. Mishra and R. Molinaro  Journal of Quantitative  Spectroscopy  & Radiative  Transfer 270 (2021) 107705 
+Table 1 
+Hyperparameter  conﬁgurations  and number of retrainings  employed  in the ensemble  training of PINNs for 
+the radiative  transfer Eq. (1.1) . 
+K −1 ˜ d λλ reg n θ
+Example  3.2, 3.3 4, 8 16, 20, 24 0.1, 1, 10 0 5 
+Example  3.4 4, 8 16, 20 0.1, 1 0, 10 −6 , 10 −5 10 
+Example  3.5 4, 8, 12, 16, 20 16, 20, 24, 28, 32, 36, 40 0.1, 1 0 20 
+Example  4.2 4, 8 16, 20, 24 1, 10 0 5 
+E G = E G (θ∗) := /parenleftBigg /integraldisplay 
+D | u (t, x, ω, ν) −u ∗(t, x, ω, ν) | 2 dz /parenrightBigg 1 
+2 
+, (2.16) 
+with d z = d xd td ωd νdenoting  the volume  measure  on D . 
+We follow the recent paper [32] and estimate  the generalization  error (2.16) , in terms of training  errors , 
+E sb 
+T := /parenleftBigg 
+N sb /summationdisplay 
+j=1 w sb 
+j | R sb,θ∗(z sb 
+j ) | 2 /parenrightBigg 1 
+2 
+, E tb 
+T := /parenleftBigg 
+N tb /summationdisplay 
+j=1 w tb 
+j | R tb,θ∗(z tb 
+j ) | 2 /parenrightBigg 1 
+2 
+, E int 
+T := /parenleftBigg 
+N int /summationdisplay 
+j=1 w int 
+j | R int,θ∗(z int 
+j ) | 2 /parenrightBigg 1 
+2 
+(2.17) 
+Note that the training  errors, deﬁned  above, correspond  to a local minimizer  θ∗of (2.15) and are readily  computable  from the loss function  
+(2.15) , during and at the end of the training  process.  
+The detailed  estimate  on the generalization  error in Lemma  Appendix  A.1 , together  with the assumptions  on the underlying  coeﬃcients,  
+functions  and neural network,  is presented  and proved  in Appendix  A . We direct the interested  reader to the appendix  and focus on the 
+following  form of the error estimate  (A.3) , 
+(E G ) 2 ≤C 1 /parenleftbig(E tb 
+T ) 2 + c(E sb 
+T ) 2 + c(E int 
+T ) 2 /parenrightbig
++ C 2 /parenleftbigg
+( log (N tb )) 2 d 
+N tb + c ( log (N sb )) 2 d 
+N sb + c ( log (N int )) 2 d+1 
+N int + cN −2 s 
+S /parenrightbigg
+, (2.18) 
+with ﬁnite constants  C 1 = C, C 2 = C C ∗deﬁned  in (A.4) . The following  remarks  about the bound (2.18) are in order, 
+Remark  2.2. The estimate  (2.18) bounds  the generalization  error in terms of the training  errors deﬁned  in (2.17) and the number  of 
+training  points N int ,sb,t b as well as quadrature  points N S for approximating  the scattering  integral  in (1.1) . Although  we have no apriori 
+estimate  on the training  errors, as argued  in [32] , these errors can readily  calculated  after the training  process  has completed.  Thus, the 
+estimate  (2.18) tells us that under the assumptions  that the constants  appearing  in (2.18) are ﬁnite, as long as the PINN is trained  well, it 
+generalizes  well . This is exactly  in the spirit of generalization  results in theoretical  machine  learning  [39] . 
+Remark  2.3. We see from the right hand side of the bound (2.18) that the dimensional  dependence  of the upper bound is only a logarith-  
+mic factor. This is not a severe restriction  in this case, as the spatial dimension  dis atmost  3. It is well known  [36] that the logarithmic  
+factor in the rhs of (2.18) starts affecting  the rate of decay only when N int < 2 2 d+1 . Thus as long as N int > 128 and N tb , N tb > 64 , we should 
+see a linear decay in the error contributions  of the Sobol points in (2.18) . Hence, we claim that as long as the training  errors do not depend  
+on the underlying  dimension,  the estimate  (2.18) suggests  that the PINNs Algorithm  2.1 will not suffer from a curse of dimensionality  . 
+Remark  2.4. The estimate  (2.18) brings out the role of the speed of light cvery clearly.  As long as cis ﬁnite, we can rescale  time to set 
+c = 1 . Nevertheless,  the constant  Cin (2.18) grows exponentially  with the rescaled  time, deteriorating  the control  on the error provided  by 
+the bound (2.18) . Thus, this bound is not suitable  for steady-state  problems  (formally)  obtained  by letting c → ∞ . Nevertheless,  a modiﬁed  
+error estimate  can be derived  for the steady state case and we present  it in the Appendix  B . 
+3. Numerical  experiments  
+3.1. Implementation  
+The PINNs Algorithm  2.1 has been implemented  within the PyTorch  framework  [40] and the code can be downloaded  from https://  
+github.com/mroberto166/RadiativeTransportPinns  . As is well documented  [28,29,32]  , the coding and implementation  of PINNs is extremely  
+simple,  particularly  when compared  to standard  methods  such as ﬁnite elements.  Only a few lines of Python  code suﬃce for this purpose.  
+All the numerical  experiments  were performed  on a single GeForce  GTX1080  GPU. 
+The PINNs algorithm  has the following  hyperparameters,  the number  of hidden  layers K −1 , the width of each hidden  layer d k ≡˜ d in 
+(2.7) , the speciﬁc  activation  function  A , the parameter  λin the loss function  (2.14) , the regularization  parameter  λreg in the cumulative  
+loss function  (2.15) and the speciﬁc  gradient  descent  algorithm  for approximating  the optimization  problem  (2.15) . We use the hyper- 
+bolic tangent  tanh activation  function,  thus ensuring  that all the smoothness  hypothesis  on the resulting  neural networks,  as required  in 
+Lemmas  Appendix  A.1 and Appendix  B.1 are satisﬁed.  Moreover,  we use the second-order  LBFGS method  [38] as the optimizer.  We follow 
+the ensemble  training  procedure  of [17] in order to choose  the remaining  hyperparameters.  To this end, we consider  a range of values, 
+shown in Table 1 , for the number  of hidden  layers, the depth of each hidden  layer, the parameter  λand the regularization  parameter  λreg . 
+For each conﬁguration  in the ensemble,  the resulting  model is retrained  (in parallel)  n θtimes with different  random  starting  values of the 
+trainable  weights  in the optimization  algorithm  and the one yielding  the smallest  value of the training  loss is selected.  
+5 

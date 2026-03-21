@@ -1,0 +1,93 @@
+Journal of Quantitative  Spectroscopy  & Radiative  Transfer 270 (2021) 107705 
+Contents  lists available  at ScienceDirect  
+Journal  of Quantitative  Spectroscopy  & Radiative  Transfer  
+journal  homepage:  www.elsevier.com/locate/jqsrt  
+Physics  informed  neural  networks  for simulating  radiative  transfer  
+Siddhartha  Mishra  a , Roberto  Molinaro  a , ∗
+Seminar for Applied Mathematics  (SAM), D-Math ETH Zürich, Rämistrasse  101., Switzerland  
+a r t i c l e i n f o 
+Article history: 
+Received  5 October 2020 
+Revised 6 April 2021 
+Accepted  7 April 2021 
+Available  online 28 April 2021 
+Keywords:  
+Radiative  transfer 
+Inverse problems  
+Deep learning 
+Physics Informed  Neural Networks  a b s t r a c t 
+We propose  a novel machine  learning  algorithm  for simulating  radiative  transfer.  Our algorithm  is based 
+on physics informed  neural networks  (PINNs),  which are trained by minimizing  the residual  of the un- 
+derlying  radiative  transfer  equations.  We present extensive  experiments  and theoretical  error estimates  
+to demonstrate  that PINNs provide  a very easy to implement,  fast, robust and accurate  method  for sim- 
+ulating radiative  transfer.  We also present a PINN based algorithm  for simulating  inverse problems  for 
+radiative  transfer  eﬃciently.  
+© 2021 The Authors. Published by Elsevier Ltd.  
+This is an open access article under the CC BY-NC-ND  license 
+( http://creativecommons.org/licenses/by-nc-nd/4.0/  ) 
+1. Introduction  
+The study of radiative  transfer  is of vital importance  in many 
+ﬁelds of science  and engineering  including  astrophysics,  climate  
+dynamics,  meteorology,  nuclear  engineering  and medical  imag- 
+ing [1] . The fundamental  equation  describing  radiative  transfer  is 
+a linear partial integro-differential  equation  , termed  as the radia- 
+tive transfer  equation  . Under the assumption  of a static underlying  
+medium,  it has the following  form [1] , 
+1 
+c u t + ω ·∇ x u + ku 
++ σ/parenleftbigg
+u −1 
+s d /integraltext 
+/Lambda1/integraltext 
+S /Phi1(ω , ω /prime , ν, ν/prime ) u (t, x, ω /prime , ν/prime ) dω /prime dν/prime /parenrightbigg
+= f, (1.1) 
+with time variable  t ∈ [0 , T ] , space variable  x ∈ D ⊂R d (and D T = 
+[0 , T ] ×D ), angle ω ∈ S = S d−1 i.e. the d-dimensional  sphere and 
+frequency  (or group energy)  ν∈ /Lambda1⊂R . The constants  in (1.1) are 
+the speed of light cand the surface  area s d of the d-dimensional  
+unit sphere.  The unknown  of interest  in (1.1) is the so-called  radia- 
+tive intensity  u : D T ×S ×/Lambda1/mapsto→ R , while k = k (x, ν) : D ×/Lambda1/mapsto→ R + is 
+the absorption  coeﬃcient  and σ= σ(x, ν) : D ×/Lambda1/mapsto→ R + is the scat- 
+tering coeﬃcient  . The integral  term in (1.1) involves  the so-called  
+scattering  kernel /Phi1: S ×S ×/Lambda1×/Lambda1/mapsto→ R , which is normalized  as /integraltext 
+S×/Lambda1/Phi1(·, ω /prime , ·, ν/prime ) d ω /prime d ν/prime = 1 , in order to account  for the con- 
+servation  of photons  during scattering.  The dynamics  of radia- 
+tive transfer  are driven by a source (emission)  term f = f(x, ν) : 
+D ×/Lambda1/mapsto→ R . 
+Although  the radiative  transfer  Eq. (1.1) is linear, explicit  solu- 
+tion formulas  are only available  in very special  cases [1] . Hence, 
+∗Corresponding  author. 
+E-mail address: roberto.molinaro@sam.math.ethz.ch  (R. Molinaro).  numerical  methods  are essential  for the simulation  of the radia- 
+tive intensity  in (1.1) . However,  the design of eﬃcient  numerical  
+methods  is considered  to be very challenging  [1–3] . This is on ac- 
+count of the high-dimensionality  of the radiative  transfer  Eq. (1.1) , 
+where in the most general  case of three space dimensions,  the ra- 
+diative intensity  is a function  of 7 variables  (4 for space-time,  2 
+for angle and 1 for frequency).  Traditional  grid-based  numerical  
+methods  such as ﬁnite elements  or ﬁnite differences,  which in- 
+volve N /lscript degrees  of freedom  (for /lscript dimensions,  with Nbeing the 
+number  of points in each dimension),  require  massive  computa-  
+tional resources  to be able to simulate  radiative  transfer  accurately  
+[2,3] . Moreover  in practice,  one has to encounter  media with very 
+different  optical properties  characterized  by different  scales in the 
+absorption  and scattering  coeﬃcients  and in the emission  term in 
+(1.1) , which further  complicates  the design of robust and eﬃcient  
+numerical  methods.  
+In spite of the aforementioned  challenges,  several  types of nu- 
+merical  methods  have been proposed  in the literature  for simu- 
+lating radiative  transfer,  see [1,2,4,5]  and references  therein  for a 
+detailed  overview.  These include  Monte Carlo ray-tracing  type par- 
+ticle methods  [6] , which do not suffer from the curse of dimen-  
+sionality  and are easy to parallelize  but are characterized  by slow 
+convergence  (with respect  to number  of particles)  and are mostly 
+limited  to media with fairly uniform  optical properties.  Discrete  Or- 
+dinate Methods  (DOM),  are based on the discretization  of the angu- 
+lar domain  Swith a number  of ﬁxed directions  and the resulting  
+systems  of spatio-temporal  PDEs is solved by ﬁnite element  or ﬁ- 
+nite difference  methods.  Although  easy to implement,  these meth- 
+ods can be very expensive  and also suffer from the so-called  ray 
+effects in optically  thin media [7] . Spherical  harmonics,  based on a 
+series expansion  in the angle, have been widely used in radiative  
+transfer  [1] . Although  shown to exhibit  spectral  convergence  for 
+https://doi.org/10.1016/j.jqsrt.2021.107705  
+0022-4073/© 2021  The Authors.  Published by Elsevier  Ltd. This is an  open access article under  the CC BY-NC-ND license (  http://creativecommons.org/licenses/by-nc-nd/4.0/  ) 

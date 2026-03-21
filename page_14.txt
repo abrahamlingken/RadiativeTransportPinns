@@ -1,0 +1,107 @@
+S. Mishra and R. Molinaro  Journal of Quantitative  Spectroscopy  & Radiative  Transfer 270 (2021) 107705 
+Multiplying  ˆ u on both sides of the ﬁrst equation  in (A.6) , we obtain,  
+1 
+2 c d( ˆ u 2 ) 
+dt + ω ·∇ x /parenleftbigg
+ˆ u 2 
+2 /parenrightbigg
+= −(k + σ) ˆ u 2 + σ
+s d /integraldisplay 
+/Lambda1/integraldisplay 
+S /Phi1(ω , ω /prime , ν, ν/prime ) ˆ u (t, x, ω /prime , ν/prime ) ˆ u (t, x, ω , ν) dω /prime dν/prime 
++ R ∗
+int ˆ u + E(u ∗, /Phi1) ˆ u (A.7) 
+Integrating  the above over D ×S ×ν, integrating  by parts and using the Cauchy’s  inequality  and the fact that k, σ≥0 , we obtain for any 
+t ∈ (0 , T ] , 
+1 
+2 c d 
+dt /integraldisplay 
+D ×S×/Lambda1ˆ u 2 (t, x, ω, ν) d xd ωd ν≤/integraldisplay 
+D ×S×/Lambda1ˆ u 2 (t, x, ω, ν) d xd ωd ν−/integraldisplay 
+(∂D ×S×/Lambda1) −(ω ·n (x )) ˆ u 2 (t, x, ω, ν) 
+2 ds ( x ) dωdν
++ /integraldisplay 
+D ×S×/Lambda1σ
+s d /integraldisplay 
+/Lambda1/integraldisplay 
+S /Phi1(ω , ω /prime , ν, ν/prime ) ˆ u (t, x, ω /prime , ν/prime ) ˆ u (t, x, ω , ν) dω /prime dν/prime dνdω dx, 
++ /integraldisplay 
+D ×S×/Lambda1(R ∗
+int (t, x, ω, ν)) 2 
+2 d νd ωd x + /integraldisplay 
+D ×S×/Lambda1(E(u ∗, /Phi1)(t, x, ω, ν)) 2 
+2 dνdωdx (A.8) 
+Here ds (x ) denotes  the surface  measure  on ∂D and we deﬁne 
+(∂D ×S ×/Lambda1) −:= { (x, ω, ν) ∈ ∂D ×S ×/Lambda1: ω ·n (x ) ≤0 } , 
+with n (x ) being the unit outward  normal  at x ∈ ∂D . 
+We ﬁx any ¯T ∈ (0 , T ] and integrate  (A.8) over (0 , ¯T ) and estimate  the result to obtain,  
+/integraldisplay 
+D ×S×/Lambda1ˆ u 2 ( ¯T , x, ω, ν) d xd ωd ν≤/integraldisplay 
+D ×S×/Lambda1ˆ u 2 (0 , x, ω, ν) d xd ωd ν+ 2 c ¯T /integraldisplay 
+0 /integraldisplay 
+D ×S×/Lambda1ˆ u 2 (t, x, ω, ν) d td xd ωd ν
++ c /integraldisplay 
+/Gamma1−| ω ·n | ˆ u 2 (t, x, ω, ν) d td s (x ) d ωd ν+ I + c /integraldisplay 
+D (R ∗
+int ) 2 dz + c /integraldisplay 
+D (E(u ∗, /Phi1)) 2 dz. (A.9) 
+Here, the term Iin (A.9) , is deﬁned  and estimated  by successive  applications  of Cauchy-Schwatrz  inequality  as, 
+I = 2 c ¯T /integraldisplay 
+0 /integraldisplay 
+D ×S×/Lambda1σ
+s d /integraldisplay 
+/Lambda1/integraldisplay 
+S /Phi1(ω , ω /prime , ν, ν/prime ) ˆ u (t, x, ω /prime , ν/prime ) ˆ u (t, x, ω , ν) dω /prime dν/prime dνdω dxdt, 
+≤2 c(/bardbl σ/bardbl L ∞ + /bardbl /Psi1/bardbl L ∞ ) 
+s d ¯T /integraldisplay 
+0 /integraldisplay 
+D ×S×/Lambda1ˆ u 2 (t, x, ω, ν) d td xd ωd ν. 
+By identifying  constant  ˆ C from (A.4) , we obtain from (A.9) and (A.6) that, 
+/integraldisplay 
+D ×S×/Lambda1ˆ u 2 ( ¯T , x, ω, ν) d xd ωd ν≤/integraldisplay 
+D ×S×/Lambda1(R ∗
+tb ) 2 d xd ωd ν+ c /integraldisplay 
+/Gamma1−(R ∗
+sb ) 2 d td s (x ) d ωd ν
++ c /integraldisplay 
+D (R ∗
+int ) 2 dz + c /integraldisplay 
+D (E(u ∗, /Phi1)) 2 dz 
++ c ˆ C ¯T /integraldisplay 
+0 /integraldisplay 
+D ×S×/Lambda1ˆ u 2 (t, x, ω, ν) d td xd ωd ν. (A.10) 
+Applying  the integral  form of Grönwall’s  inequality  to (A.10) , we obtain for any 0 < ¯T ≤T , 
+/integraldisplay 
+D ×S×/Lambda1ˆ u 2 ( ¯T , x, ω, ν) d xd ωd ν≤/parenleftBig
+1 + c ˆ C ¯T e c ˆ C ¯T /parenrightBig⎛ 
+⎝ /integraldisplay 
+D ×S×/Lambda1(R ∗
+tb ) 2 d xd ωd ν+ c /integraldisplay 
+/Gamma1−(R ∗
+sb ) 2 d td s (x ) d ωd ν⎞ 
+⎠ 
++ /parenleftBig
+1 + c ˆ C ¯T e c ˆ C ¯T /parenrightBig/parenleftBigg 
+c /integraldisplay 
+D (R ∗
+int ) 2 dz + c /integraldisplay 
+D (E(u ∗, /Phi1)) 2 dz /parenrightBigg 
+(A.11) 
+Integrating  (A.11) over (0 , T ) yields, 
+(E G ) 2 := /integraldisplay 
+D ˆ u 2 (t, x, ω, ν) dz ≤/parenleftBig
+T + c ˆ C T 2 e c ˆ C T /parenrightBig⎛ 
+⎝ /integraldisplay 
+D ×S×/Lambda1(R ∗
+tb ) 2 d xd ωd ν+ c /integraldisplay 
+/Gamma1−(R ∗
+sb ) 2 d td s (x ) d ωd ν⎞ 
+⎠ 
++ /parenleftBig
+T + c ˆ C T 2 e c ˆ C T /parenrightBig/parenleftBigg 
+c /integraldisplay 
+D (R ∗
+int ) 2 dz + c /integraldisplay 
+D (E(u ∗, /Phi1)) 2 dz /parenrightBigg 
+(A.12) 
+14 

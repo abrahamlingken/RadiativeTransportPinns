@@ -1,0 +1,54 @@
+S. Mishra and R. Molinaro  Journal of Quantitative  Spectroscopy  & Radiative  Transfer 270 (2021) 107705 
+Fig. 4. Contour plot of the incident radiation  G (x ) for the 3D monochromatic  experiment.  
+Table 4 
+Results for steady polychromatic  radiative  transfer in three space dimensions.  
+N int N sb K −1 ˜ d λ E T || F r −F ∗
+r || L 2 Training Time 
+16384 12288 8 20 0.1 0.0016 2.1 % 1 hr 6 min 
+∇ ·F r = 1 
+r 2 d 
+dr r 2 F r = 4 πf(r, ν) (3.5) 
+with r = | x −(0 . 5 , 0 . 5 , 0 . 5) | (see also [44] and references  therein).  
+An exact solution  for the above ODE can be easily obtained.  In particular,  with the source term: 
+f(x, ν) = /braceleftBigg √ πφ(ν) /parenleftBig
+1 −2 r /parenrightBig
+if r ≤0 . 5 , 
+0 otherwise  , φ(ν) = 1 √ πexp /parenleftbig
+−ν2 /parenrightbig
+, (3.6) 
+the radial ﬂux F r results in 
+F r = ⎧ 
+⎪ ⎨ 
+⎪ ⎩ 4 /radicalbig 
+π3 φ(ν) /parenleftbigg
+r 
+3 −r 2 
+2 /parenrightbigg
+if r ≤0 . 5 , 
+4 /radicalbig 
+π3 φ(ν) 1 
+96 r 2 otherwise  . (3.7) 
+As in the previous  numerical  experiment,  we use Sobol points for the interior  and boundary  training  sets and Gauss quadrature  points 
+for integrating  the scattering  kernel, with N int = 16384 , N sb = 12288 and N S = 100 . The hyperparameters  used in the ensemble  trainig are 
+reported  in Table 1 and the resulting  best performing  conﬁguration  is shown in Table 4 . We observe  from this table that the resulting  
+training  error is 1 . 6 ×10 −3 , which is about three times higher than the training  error with the monochromatic  experiment  (see Table 3 ). 
+This is not surprising  as the underlying  problem  is more complicated  on account  of introducing  frequency  as an additional  variable  and 
+resulting  in a 6-dimensional  problem.  
+As no analytical  solution  is available  for the radiative  intensity,  we cannot compute  the generalization  error (B.4) . However,  we can 
+compute  the error between  the analytical  radial ﬂux (3.7) and the PINN approximation  (computed  from the intensity  with a Gauss- 
+Legendre  quadrature  rule). We show the resulting  L 2 -norm of the error in Table 4 . We see from this table that the error for the ﬂux is 
+quite low at approximately  2% relative  error, even for this rather complicated  underlying  problem.  Moreover,  the training  time is only 
+one hour. Thus, PINNs are able to approximate  the underlying  solution  to high accuracy  at low computational  cost for this 6-dimensional  
+problem.  
+3.5. Polychromatic  time-dependent  radiative  transfer  in three space dimensions  
+For the ﬁnal numerical  experiment,  we consider  the conﬁguration  proposed  in [45] , which is widely used in benchmarking  the ra- 
+diative transport  modules  in production  codes for radiation-(magneto)hydrodynamics,  in the context  of Astrophysics  [46] . The setup is as 
+follows;  a sphere with radius R i and ﬁxed temperature  T S is surrounded  by a cold static medium  at temperature  T m < T S . The experiment  
+might represent,  for instance,  the model of a star radiating  in the surrounding  atmosphere.  It is assumed  that the sphere,  as well as the 
+surrounding  medium,  are emitting  with a Planckian  distribution  
+B (T , ν) = 2 hν3 
+c 2 1 
+e hν
+k b T −1 (3.8) 
+with h and k b being the Planck and Boltzmann  constant,  and cthe speed of light. 
+8 
