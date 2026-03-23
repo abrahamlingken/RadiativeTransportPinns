@@ -51,13 +51,20 @@ else:
 # --------------------------------------------------
 # 配置区域：修改以下参数切换介质类型
 # --------------------------------------------------
-# 模式1: 纯吸收介质 -> KAPPA=0.5, SIGMA_S=0.0, I_B=0.0
-# 模式2: 吸收-散射介质 -> KAPPA=0.5, SIGMA_S=0.5, I_B=0.0
-# 模式3: 发射介质 -> KAPPA=0.5, SIGMA_S=0.5, I_B=1.0
+# 模式1: 纯吸收介质 -> KAPPA=0.5, SIGMA_S=0.0, I_B=0.0, G_HG=0.0
+# 模式2: 各向同性散射 -> KAPPA=0.5, SIGMA_S=0.5, I_B=0.0, G_HG=0.0
+# 模式3: 各向异性散射 -> KAPPA=0.5, SIGMA_S=0.5, I_B=0.0, G_HG=0.5 (前向)
+# 模式4: 发射介质 -> KAPPA=0.5, SIGMA_S=0.5, I_B=1.0, G_HG=0.0
+#
+# 注意: G_HG 可由外部脚本动态修改以支持各向异性散射案例
+#   g = 0.0:  各向同性散射
+#   g > 0:    前向散射 (峰值在 mu=mu')
+#   g < 0:    后向散射 (峰值在 mu=-mu')
+#   |g| -> 1: 散射方向性越强
 KAPPA_CONST = 0.5      # 吸收系数
 SIGMA_S_CONST = 0.0    # 散射系数（设为0即为纯吸收）
 I_B_CONST = 0.0        # 黑体辐射强度
-G_HG = 0.0             # HG不对称因子（0为各向同性）
+G_HG = 0.0             # HG不对称因子（0为各向同性，可由外部脚本动态修改）
 
 
 def kappa(x):
@@ -147,12 +154,14 @@ def compute_scattering(u, x, mu, network, g=G_HG):
     """
     计算散射积分项: 0.5 * integral Phi(mu, mu') * u(x, mu') dmu'
     
+    支持各向异性散射（通过HG相函数）
+    
     Args:
         u: 当前方向的辐射强度, shape: [N]
         x: 空间坐标, shape: [N, 1]
         mu: 当前方向余弦, shape: [N]
         network: PINN 网络
-        g: HG 不对称因子
+        g: HG 不对称因子（默认使用全局 G_HG，可被覆盖）
     Returns:
         散射积分值, shape: [N]
     """
@@ -199,12 +208,21 @@ def compute_scattering(u, x, mu, network, g=G_HG):
 
 def compute_res(network, x_f_train, space_dimensions, solid_object=None, computing_error=False):
     """
-    计算一维稳态辐射传输方程残差 (完全体 RTE)
+    计算一维稳态辐射传输方程残差 (完全体 RTE，支持各向异性散射)
+    
     方程: mu * du/dx + (kappa + sigma_s) * u = sigma_s * scattering_integral + kappa * I_b
+    
+    各向异性散射特性:
+        - 通过全局变量 G_HG 控制HG不对称因子
+        - G_HG 可由外部训练脚本动态修改 (如 Scripts/train_1d_multicase_anisotropic.py)
+        - g = 0: 各向同性; g > 0: 前向散射; g < 0: 后向散射
     
     Args:
         network: PINN 网络
         x_f_train: 配点 (x, mu), shape: [N, 2]
+        space_dimensions: 空间维度（兼容接口）
+        solid_object: 固体对象（兼容接口）
+        computing_error: 是否计算误差（兼容接口）
     Returns:
         残差, shape: [N]
     """
