@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'Core'))
 from ImportFile import *
 
 pi = math.pi
@@ -14,8 +17,8 @@ def initialize_inputs(len_sys_argv):
         # Number of training+validation points
         # 原始配置：经过实验验证的最优配置
         # ========== 论文 Section 3.3 配置 (Table 3) - 降低内存版本 ==========
-        n_coll_ = 8192   # N_int = 8192 (论文Table 2, Section 3.2)
-        n_u_ = 1024      # N_sb/2 = 1024 per boundary (Table 2)
+        n_coll_ = 16384   # N_int = 8192 (论文Table 2, Section 3.2)
+        n_u_ = 2048      # N_sb/2 = 1024 per boundary (Table 2)
         n_int_ = 0       # 此算例不需要内部点
 
         # Only for Navier Stokes
@@ -32,7 +35,7 @@ def initialize_inputs(len_sys_argv):
         # 论文 Table 3 配置: K-1=8, d̃=24, λ=0.1
         network_properties_ = {
             "hidden_layers": 8,             # K-1 = 8 (论文Table 3)
-            "neurons": 24,                   # d̃ = 24 (论文Table 2, 2D问题足够)
+            "neurons": 32,                   # d̃ = 24 (论文Table 2, 2D问题足够)
             "residual_parameter": 0.1,      # λ = 0.1 (论文Table 3)
             "kernel_regularizer": 2,        # 保持默认
             "regularization_parameter": 0,
@@ -104,7 +107,12 @@ except AttributeError:
     parameter_dimensions = 0
     type_point_param = None
 
-input_dimensions = parameter_dimensions + time_dimension + space_dimensions
+# 对于辐射传输问题，输入维度是空间维度+方向维度
+# 覆盖默认计算，使用EquationModels中定义的input_dimensions
+if hasattr(Ec, 'input_dimensions') and Ec.input_dimensions is not None:
+    input_dimensions = Ec.input_dimensions
+else:
+    input_dimensions = parameter_dimensions + time_dimension + space_dimensions
 output_dimension = Ec.output_dimension
 
 print(input_dimensions)

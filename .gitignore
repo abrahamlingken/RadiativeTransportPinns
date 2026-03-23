@@ -32,3 +32,12 @@ Thumbs.db
 # ´óÎÄ¼ş
 paper.pdf
 *.tar.gz
+
+# Training outputs
+Results_1D_*/Images/*.png
+Results_1D_*/TrainedModel/*.pkl
+*.pkl
+dom_solution.png
+dom_boundaries.png
+validation_results/
+__pycache__/

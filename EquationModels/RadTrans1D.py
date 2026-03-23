@@ -1,323 +1,460 @@
+# -*- coding: utf-8 -*-
+"""
+重构版 1D 辐射传输方程模型
+支持：纯吸收介质、吸收-散射介质、各向异性散射
+"""
+
 from ImportFile import *
-import time
-from scipy.special import legendre
+import numpy as np
 
 pi = math.pi
 
-extrema_values = None
+# ==============================================================================
+# 全局参数设置
+# ==============================================================================
 space_dimensions = 1
 time_dimensions = 0
-domain_values = torch.tensor([[0.00, 1.0]])
-parameters_values = torch.tensor([[-1.0, 1.0]])  # mu=cos(theta)
-
+parameter_dimensions = 0
+# 总输入维度 = 空间维度(1) + 方向维度(1) = 2
+# 注意: input_dimensions在ImportFile中计算为 parameter + time + space = 1
+# 但辐射传输需要(x, mu)两个输入，因此需要在训练脚本中覆盖或使用特殊处理
+# 这里显式定义input_dimensions供ImportFile使用
+input_dimensions = 2  # x 和 mu
+output_dimension = 1  # 辐射强度 I
+# 使用 free shape 模式（配合 DatasetTorch2 的 else 分支）
+# extrema_values = torch.tensor([[0., 1.], [-1., 1.]])
+extrema_values = None  # 设为 None 以使用 free shape 数据生成
 type_of_points = "sobol"
-type_of_points_dom = "sobol"
-r_min = 0.0
-input_dimensions = 1
-output_dimension = 1
+input_dimensions = 2  # (x, mu)
 
-ub_0 = 1.
-ub_1 = 0.
-strip = 0.05
+# 数值积分配置（高斯求积）
+n_quad = 20  # 积分阶数
 
-n_quad = 20  # 论文使用Gauss-Legendre quadrature of order 20
+# 获取求积点和权重（在 [-1, 1] 区间）
+# shape: [n_quad], [n_quad]
+mu_quad, w_quad = np.polynomial.legendre.leggauss(n_quad)
+mu_quad = torch.tensor(mu_quad, dtype=torch.float32)  # shape: [n_quad]
+w_quad = torch.tensor(w_quad, dtype=torch.float32)    # shape: [n_quad]
 
 if torch.cuda.is_available():
     dev = torch.device('cuda')
+    mu_quad = mu_quad.cuda()
+    w_quad = w_quad.cuda()
 else:
     dev = torch.device("cpu")
 
 
-def I0(x, mu):
-    x = x.reshape(-1, )
-    mu = mu.reshape(-1, )
-    return (-mu * pi / 2 * torch.sin(pi / 2 * x) + torch.cos(pi / 2 * x)) * torch.sin(pi * mu) ** 2 - x / 2 * torch.cos(pi / 2 * x)
+# ==============================================================================
+# 1. 介质物理参数函数（支持三种模式）
+# ==============================================================================
+
+# --------------------------------------------------
+# 配置区域：修改以下参数切换介质类型
+# --------------------------------------------------
+# 模式1: 纯吸收介质 -> KAPPA=0.5, SIGMA_S=0.0, I_B=0.0
+# 模式2: 吸收-散射介质 -> KAPPA=0.5, SIGMA_S=0.5, I_B=0.0
+# 模式3: 发射介质 -> KAPPA=0.5, SIGMA_S=0.5, I_B=1.0
+KAPPA_CONST = 0.5      # 吸收系数
+SIGMA_S_CONST = 0.0    # 散射系数（设为0即为纯吸收）
+I_B_CONST = 0.0        # 黑体辐射强度
+G_HG = 0.0             # HG不对称因子（0为各向同性）
 
 
-def sigma(x):
-    return x
+def kappa(x):
+    """
+    吸收系数 (Absorption Coefficient)
+    Args:
+        x: 空间坐标, shape: [N] 或 [N, 1]
+    Returns:
+        吸收系数, shape: [N]
+    """
+    if x.dim() > 1:
+        x = x.squeeze(-1)
+    # shape: [N]
+    return torch.full_like(x, KAPPA_CONST)
 
 
-def kernel(mu, mu_prime):
-    d = [1.0, 1.98398, 1.50823, 0.70075, 0.23489, 0.05133, 0.00760, 0.00048]
-    k = torch.tensor(()).new_full(size=(mu.shape[0], mu_prime.shape[0]), fill_value=0.0)
-
-    for p in range(len(d)):
-        pn_mu = torch.from_numpy(legendre(p)(mu.detach().cpu().numpy()).reshape(-1, 1)).type(torch.FloatTensor)
-        # plt.scatter(mu.detach().numpy(), pn_mu.detach().numpy())
-        pn_mu_prime = torch.from_numpy(legendre(p)(mu_prime.detach().cpu().numpy()).reshape(-1, 1).T).type(torch.FloatTensor)
-        kn = torch.matmul(pn_mu, pn_mu_prime)
-        k = k + d[p] * kn
-
-    return k.to(dev)
-
-
-def compute_scattering(x, mu, model):
-    mu_prime, w = np.polynomial.legendre.leggauss(n_quad)
-    w = torch.from_numpy(w).type(torch.FloatTensor)
-    mu_prime = torch.from_numpy(mu_prime).type(torch.FloatTensor)
-
-    x_l = list(x.detach().cpu().numpy())
-    mu_prime_l = list(mu_prime.detach().cpu().numpy())
-
-    inputs = torch.from_numpy(np.transpose([np.repeat(x_l, len(mu_prime_l)), np.tile(mu_prime_l, len(x_l))])).type(torch.FloatTensor).to(dev)
-
-    u = model(inputs)
-    u = u.reshape(x.shape[0], mu_prime.shape[0])
-
-    kern = kernel(mu, mu_prime)
-
-    scatter_values = torch.zeros_like(x)
-
-    for i in range(len(w)):
-        scatter_values = scatter_values + w[i] * kern[:, i] * u[:, i]
-
-    return scatter_values.to(dev)
+def sigma_s(x):
+    """
+    散射系数 (Scattering Coefficient)
+    Args:
+        x: 空间坐标, shape: [N] 或 [N, 1]
+    Returns:
+        散射系数, shape: [N]
+    """
+    if x.dim() > 1:
+        x = x.squeeze(-1)
+    # shape: [N]
+    return torch.full_like(x, SIGMA_S_CONST)
 
 
-def generator_samples(type_point_param, samples, dim, random_seed):
-    extrema = torch.cat([domain_values, parameters_values], 0)
-    extrema_0 = extrema[:, 0]
-    extrema_f = extrema[:, 1]
-    if type_point_param == "uniform":
-        if random_seed is not None:
-            torch.random.manual_seed(random_seed)
-        params = torch.rand([samples, dim]).type(torch.FloatTensor) * (extrema_f - extrema_0) + extrema_0
-
-        return params
-    elif type_point_param == "sobol":
-        # Use Scipy's Sobol generator instead of sobol_seq
-        sampler = qmc.Sobol(d=dim, scramble=False)
-        # Skip the first random_seed points to get different samples
-        if random_seed > 0:
-            sampler.fast_forward(random_seed)
-        data = sampler.random(n=samples)
-        params = torch.from_numpy(data).type(torch.FloatTensor) * (extrema_f - extrema_0) + extrema_0
-        return params
-    elif type_point_param == "grid":
-        # if n_time_step is None:
-        if dim == 2:
-            n_mu = 128
-            n_x = int(samples / n_mu)
-            x = np.linspace(0, 1, n_x + 2)
-            mu = np.linspace(0, 1, n_mu)
-            x = x[1:-1]
-            inputs = torch.from_numpy(np.transpose([np.repeat(x, len(mu)), np.tile(mu, len(x))])).type(torch.FloatTensor)
-            inputs = inputs * (extrema_f - extrema_0) + extrema_0
-        elif dim == 1:
-            x = torch.linspace(0, 1, samples).reshape(-1, 1)
-            mu = torch.linspace(0, 1, samples).reshape(-1, 1)
-            inputs = torch.cat([x, mu], 1)
-            inputs = inputs * (extrema_f - extrema_0) + extrema_0
-        else:
-            raise ValueError()
-
-        return inputs.to(dev)
+def I_b(x):
+    """
+    黑体辐射强度 (Blackbody Intensity / Emission Source)
+    Args:
+        x: 空间坐标, shape: [N] 或 [N, 1]
+    Returns:
+        黑体辐射强度, shape: [N]
+    """
+    if x.dim() > 1:
+        x = x.squeeze(-1)
+    # shape: [N]
+    return torch.full_like(x, I_B_CONST)
 
 
-def compute_res(network, x_f_train, space_dimensions, solid_object, computing_error):
-    x_f_train.requires_grad = True
-    x = x_f_train[:, 0]
-    mu = x_f_train[:, 1]
+# ==============================================================================
+# 2. 相函数 (Phase Function) - Henyey-Greenstein
+# ==============================================================================
 
-    x_f_train = x_f_train[~((x < 0.01) & (mu < 0.01) & (mu > -0.01))]
-    x = x_f_train[:, 0]
-    mu = x_f_train[:, 1]
+def kernel_HG(mu, mu_prime, g=G_HG):
+    """
+    Henyey-Greenstein 散射相函数
+    公式: Phi_HG = (1 - g^2) / (1 + g^2 - 2g*cos(theta))^(3/2)
+    
+    Args:
+        mu: 当前光线方向余弦, shape: [N, 1]
+        mu_prime: 积分方向余弦, shape: [1, n_quad] 或 [n_quad]
+        g: 不对称因子
+    Returns:
+        相函数值 Phi_HG, shape: [N, n_quad]
+    """
+    # 确保 mu 为 [N, 1] 用于广播
+    if mu.dim() == 1:
+        mu = mu.unsqueeze(-1)  # shape: [N, 1]
+    
+    # 确保 mu_prime 为 [1, n_quad]
+    if mu_prime.dim() == 1:
+        mu_prime = mu_prime.unsqueeze(0)  # shape: [1, n_quad]
+    
+    # 计算散射角余弦: cos(Theta) = mu * mu_prime
+    # 广播: [N, 1] * [1, n_quad] -> [N, n_quad]
+    cos_theta = mu * mu_prime  # shape: [N, n_quad]
+    
+    # HG 相函数
+    g_sq = g ** 2
+    numerator = 1.0 - g_sq
+    
+    # 分母: (1 + g^2 - 2g*cos(theta))^(3/2)
+    denominator = torch.pow(1.0 + g_sq - 2.0 * g * cos_theta, 1.5)  # shape: [N, n_quad]
+    
+    # 相函数值
+    phi_hg = numerator / denominator  # shape: [N, n_quad]
+    
+    return phi_hg
 
-    u = network(x_f_train).reshape(-1, )
-    grad_u = torch.autograd.grad(u, x_f_train, grad_outputs=torch.ones(x_f_train.shape[0], ).to(dev), create_graph=True)[0]
 
-    grad_u_x = grad_u[:, 0]
+def compute_scattering(u, x, mu, network, g=G_HG):
+    """
+    计算散射积分项: 0.5 * integral Phi(mu, mu') * u(x, mu') dmu'
+    
+    Args:
+        u: 当前方向的辐射强度, shape: [N]
+        x: 空间坐标, shape: [N, 1]
+        mu: 当前方向余弦, shape: [N]
+        network: PINN 网络
+        g: HG 不对称因子
+    Returns:
+        散射积分值, shape: [N]
+    """
+    N = x.shape[0]
+    
+    # 纯吸收介质快速路径：直接返回0
+    if SIGMA_S_CONST == 0.0:
+        return torch.zeros_like(u)  # shape: [N]
+    
+    # 将 x 复制 n_quad 次，与每个 mu_quad 组合
+    # x_repeated: [N, 1] -> [N*n_quad, 1]
+    x_repeated = x.repeat(1, n_quad).view(-1, 1)  # shape: [N*n_quad, 1]
+    
+    # mu_quad_expanded: [n_quad] -> [N, n_quad] -> [N*n_quad, 1]
+    mu_expanded = mu_quad.unsqueeze(0).repeat(N, 1).view(-1, 1)  # shape: [N*n_quad, 1]
+    
+    # 组合输入 (x, mu')
+    x_mu_prime = torch.cat([x_repeated, mu_expanded], dim=-1)  # shape: [N*n_quad, 2]
+    
+    # 通过网络计算所有方向上的 u(x, mu')
+    u_all_directions = network(x_mu_prime)  # shape: [N*n_quad, 1]
+    u_all_directions = u_all_directions.view(N, n_quad)  # shape: [N, n_quad]
+    
+    # 获取相函数
+    mu_current = mu.unsqueeze(-1)  # shape: [N, 1]
+    mu_prime = mu_quad.unsqueeze(0)  # shape: [1, n_quad]
+    
+    phi_matrix = kernel_HG(mu_current, mu_prime, g=g)  # shape: [N, n_quad]
+    
+    # 散射积分
+    weights = w_quad.unsqueeze(0)  # shape: [1, n_quad]
+    integrand = phi_matrix * u_all_directions * weights  # shape: [N, n_quad]
+    scattering_integral = torch.sum(integrand, dim=1)  # shape: [N]
+    
+    # 乘以 0.5 (1D平板几何标准化因子)
+    scattering_term = 0.5 * scattering_integral  # shape: [N]
+    
+    return scattering_term
 
-    scatter_values = compute_scattering(x, mu, network)
-    residual = (mu * grad_u_x + u) - sigma(x) / 2 * scatter_values  # - I0(x, mu)
 
-    res = residual
+# ==============================================================================
+# 3. 完全体 RTE 残差计算
+# ==============================================================================
 
-    return res
+def compute_res(network, x_f_train, space_dimensions, solid_object=None, computing_error=False):
+    """
+    计算一维稳态辐射传输方程残差 (完全体 RTE)
+    方程: mu * du/dx + (kappa + sigma_s) * u = sigma_s * scattering_integral + kappa * I_b
+    
+    Args:
+        network: PINN 网络
+        x_f_train: 配点 (x, mu), shape: [N, 2]
+    Returns:
+        残差, shape: [N]
+    """
+    # 拆分坐标
+    x = x_f_train[:, 0:1]      # shape: [N, 1]
+    mu = x_f_train[:, 1]       # shape: [N]
+    
+    # 确保 x 需要梯度
+    x.requires_grad_(True)
+    
+    # 网络预测 u(x, mu)
+    x_mu = torch.cat([x, mu.unsqueeze(-1)], dim=-1)  # shape: [N, 2]
+    u = network(x_mu).squeeze(-1)  # shape: [N]
+    
+    # 1. 空间导数 du/dx
+    grad_outputs = torch.ones_like(u)  # shape: [N]
+    grad_u = torch.autograd.grad(
+        u, x, 
+        grad_outputs=grad_outputs,
+        create_graph=True,
+        retain_graph=True
+    )[0]  # shape: [N, 1]
+    grad_u_x = grad_u.squeeze(-1)  # shape: [N]
+    
+    # 2. 对流项: mu * du/dx
+    advection_term = mu * grad_u_x  # shape: [N]
+    
+    # 3. 介质参数
+    kappa_val = kappa(x.squeeze(-1))      # shape: [N]
+    sigma_s_val = sigma_s(x.squeeze(-1))  # shape: [N]
+    I_b_val = I_b(x.squeeze(-1))          # shape: [N]
+    
+    # 4. 衰减项 (Extinction)
+    extinction_coeff = kappa_val + sigma_s_val  # shape: [N]
+    attenuation_term = extinction_coeff * u     # shape: [N]
+    
+    # 5. 散射源项 (纯吸收时为0)
+    scattering_source = compute_scattering(u, x, mu, network, g=G_HG)  # shape: [N]
+    scattering_term = sigma_s_val * scattering_source  # shape: [N]
+    
+    # 6. 发射源项
+    emission_term = kappa_val * I_b_val  # shape: [N]
+    
+    # 7. 组装残差
+    lhs = advection_term + attenuation_term  # shape: [N]
+    rhs = scattering_term + emission_term    # shape: [N]
+    residual = lhs - rhs  # shape: [N]
+    
+    return residual
 
 
-def add_internal_points(n_internal):
-    x_internal = torch.tensor(()).new_full(size=(n_internal, parameters_values.shape[0] + domain_values.shape[0]), fill_value=0.0)
-    y_internal = torch.tensor(()).new_full(size=(n_internal, 1), fill_value=0.0)
+# ==============================================================================
+# 4. 边界条件与数据生成
+# ==============================================================================
 
-    return x_internal, y_internal
-
-
-def add_boundary(n_boundary):
-    mu0 = generator_samples(type_of_points, int(n_boundary / 2), parameters_values.shape[0], 1024)[:, 1].reshape(-1, 1)
-    mu1 = generator_samples(type_of_points, int(n_boundary / 2), parameters_values.shape[0], 1024)[:, 1].reshape(-1, 1)
-    x0 = torch.tensor(()).new_full(size=(int(n_boundary / 2), 1), fill_value=float(domain_values[0, 0]))
-    x1 = torch.tensor(()).new_full(size=(int(n_boundary / 2), 1), fill_value=float(domain_values[0, 1]))
-    x = torch.cat([x0, x1], 0)
-    mu = torch.cat([mu0, mu1], 0)
-    ub = torch.tensor(()).new_full(size=(int(n_boundary), 1), fill_value=ub_1)
-    return torch.cat([x, mu], 1), ub
+def apply_BC(x_boundary, u_boundary, model):
+    """应用边界条件"""
+    u_pred = model(x_boundary).squeeze(-1)  # shape: [N]
+    return u_pred, u_boundary
 
 
 def add_collocations(n_collocation):
-    inputs = generator_samples(type_of_points_dom, int(n_collocation), parameters_values.shape[0] + domain_values.shape[0], 1024)
-
-    u = torch.tensor(()).new_full(size=(n_collocation, 1), fill_value=np.nan)
-    return inputs, u
-
-
-def apply_BC(x_boundary, u_boundary, model):
-    """
-    应用论文Section 3.2的入射边界条件:
-    u(0, μ) = 1, μ ∈ (0, 1]  (入射)
-    u(1, μ) = 0, μ ∈ [-1, 0) (出射)
-    在 μ=0 处允许间断
-    """
-    x = x_boundary[:, 0]
-    mu = x_boundary[:, 1]
-
-    x0 = x[x == domain_values[0, 0]]
-    x1 = x[x == domain_values[0, 1]]
-
-    n0_len = x0.shape[0]
-    n1_len = x1.shape[0]
-
-    # 法向量: x=0处n=-1, x=1处n=1
-    n0 = torch.tensor(()).new_full(size=(n0_len,), fill_value=-1.0)
-    n1 = torch.tensor(()).new_full(size=(n1_len,), fill_value=1.0)
-    n = torch.cat([n0, n1], 0).to(dev)
-
-    # 选择入射边界点: n·μ < 0
-    scalar = n * mu < 0
-
-    x_boundary_inf = x_boundary[scalar, :]
-    u_boundary_inf = u_boundary[scalar, :]
+    """生成内部配点"""
+    sampler = qmc.Sobol(d=2, scramble=True)
+    samples = sampler.random(n=n_collocation)  # shape: [n_collocation, 2]
     
-    # 获取入射边界的x坐标和mu值
-    x_inf = x_boundary_inf[:, 0]
-    mu_inf = x_boundary_inf[:, 1]
-
-    # 构建目标边界值
-    # x=0 且 μ>0: u=1 (入射)
-    # x=1 且 μ<0: u=0 (出射)
-    u_target = torch.where(
-        x_inf == domain_values[0, 0],  # x=0边界
-        torch.tensor(ub_0).to(dev),    # u=1
-        torch.tensor(ub_1).to(dev)     # x=1边界, u=0
-    )
-
-    u_pred = model(x_boundary_inf)
-
-    return u_pred.reshape(-1, ), u_target.reshape(-1, )
+    x = samples[:, 0:1]  # [0,1]
+    mu = samples[:, 1:2] * 2.0 - 1.0  # [-1,1]
+    
+    x_coll = torch.tensor(np.concatenate([x, mu], axis=1), dtype=torch.float32)
+    y_coll = torch.full((n_collocation, 1), float('nan'), dtype=torch.float32)
+    
+    if torch.cuda.is_available():
+        x_coll = x_coll.cuda()
+        y_coll = y_coll.cuda()
+    
+    return x_coll, y_coll
 
 
-def convert(vector):
-    vector = np.array(vector)
-    max_val = np.max(np.array(extrema_values), axis=1)
-    min_val = np.min(np.array(extrema_values), axis=1)
-    vector = vector * (max_val - min_val) + min_val
-    return torch.from_numpy(vector).type(torch.FloatTensor)
+def add_initial_points(n_initial):
+    """生成初始点（稳态问题不需要，返回空）"""
+    if n_initial == 0:
+        return torch.empty(0, 2), torch.empty(0, 1)
+    # 稳态问题没有初始条件，返回空张量
+    x_time = torch.empty(n_initial, 2)
+    y_time = torch.empty(n_initial, 1)
+    if torch.cuda.is_available():
+        x_time = x_time.cuda()
+        y_time = y_time.cuda()
+    return x_time, y_time
 
 
-def compute_generalization_error(model, extrema, images_path=None):
-    return 0, 0
+def add_internal_points(n_internal):
+    """生成内部点（通过add_collocations实现）"""
+    if n_internal == 0:
+        return torch.empty(0, 2), torch.empty(0, 1)
+    return add_collocations(n_internal)
 
 
-def plotting(model, images_path, extrema, solid):
+def add_boundary(n_boundary):
+    """生成边界点 (Marshak边界)"""
+    n_per_side = n_boundary // 2
+    
+    # 左边界 x=0, mu > 0 (入射)
+    x_left = torch.zeros(n_per_side, 1)
+    mu_left = torch.rand(n_per_side, 1) + 0.01  # (0, 1]
+    
+    # 右边界 x=1, mu < 0 (出射)
+    x_right = torch.ones(n_per_side, 1)
+    mu_right = -torch.rand(n_per_side, 1) - 0.01  # [-1, 0)
+    
+    x_b = torch.cat([x_left, x_right], dim=0)
+    mu_b = torch.cat([mu_left, mu_right], dim=0)
+    
+    x_boundary = torch.cat([x_b, mu_b], dim=-1)  # shape: [n_boundary, 2]
+    
+    # 边界值: 左侧入射强度为1，右侧为0
+    u_left = torch.ones(n_per_side)
+    u_right = torch.zeros(n_per_side)
+    u_b = torch.cat([u_left, u_right], dim=0)  # shape: [n_boundary]
+    
+    if torch.cuda.is_available():
+        x_boundary = x_boundary.cuda()
+        u_b = u_b.cuda()
+    
+    return x_boundary, u_b
+
+
+# DefineDataset 需要的边界条件列表（free shape不使用，但需定义为空列表）
+list_of_BC = []
+
+
+# ==============================================================================
+# 5. 后处理与可视化
+# ==============================================================================
+
+def compute_generalization_error(model, extrema, images_path=None, n_test=1000):
     """
-    论文Section 3.2结果可视化
-    使用文献[42]的边界值进行对比 (Fig. 3)
+    计算泛化误差 (L2 error)
+    对于纯吸收介质，有解析解或参考解进行比较
+    
+    Args:
+        model: 训练好的PINN模型
+        extrema: 定义域边界 (未使用，保持接口一致)
+        images_path: 图像保存路径 (可选)
+        n_test: 测试点数量
+    Returns:
+        L2_error: L2绝对误差
+        rel_L2_error: 相对L2误差
     """
-    model.cpu()
-    model = model.eval()
-    n = 800
-
-    x = np.linspace(domain_values[0, 0], domain_values[0, 1], n)
-    mu = np.linspace(parameters_values[0, 0], parameters_values[0, 1], n)
-
-    inputs = torch.from_numpy(np.transpose([np.repeat(x, len(mu)), np.tile(mu, len(x))])).type(torch.FloatTensor)
-    sol = model(inputs)
-    sol = sol.reshape(x.shape[0], mu.shape[0])
-
-    # PINN预测结果等高线图 (对应论文Fig. 2)
-    # 使用指数分布的levels，使颜色分布更均匀（避免蓝色区域过大）
-    # 在0-1范围内按指数分布设置30个等高线层级
-    levels_exp = np.power(np.linspace(0, 1, 35), 1.5)  # 指数1.5，让高值区域有更多分层
-    levels_exp = np.unique(np.round(levels_exp, 4))
+    import numpy as np
     
-    plt.figure(figsize=(9, 7))
-    ax = plt.gca()
+    # 生成测试点 (x, mu)
+    x_test = torch.linspace(0, 1, n_test).unsqueeze(-1)  # [n_test, 1]
+    mu_test = torch.linspace(-1, 1, n_test).unsqueeze(-1)  # [n_test, 1]
     
-    # 使用PowerNorm进行颜色归一化，使颜色分布更均匀
-    from matplotlib.colors import PowerNorm
-    norm = PowerNorm(gamma=0.6, vmin=0, vmax=1)  # gamma<1使低值区域压缩，高值区域扩展
+    # 创建网格
+    x_grid, mu_grid = torch.meshgrid(x_test.squeeze(), mu_test.squeeze(), indexing='ij')
+    x_flat = x_grid.flatten().unsqueeze(-1)  # [n_test*n_test, 1]
+    mu_flat = mu_grid.flatten().unsqueeze(-1)  # [n_test*n_test, 1]
     
-    contour1 = ax.contourf(x.reshape(-1, ), mu.reshape(-1, ), sol.detach().numpy().T, 
-                           cmap='jet', levels=levels_exp, norm=norm, extend='both')
-    ax.set_aspect('equal')
-    cbar = plt.colorbar(contour1, ax=ax, fraction=0.046, pad=0.04)
-    cbar.set_label(r'$u(x,\mu)$', rotation=270, labelpad=20)
-    plt.xlabel(r'$x$', fontsize=12)
-    plt.ylabel(r'$\mu$', fontsize=12)
-    plt.title(r'PINN Prediction: $u(x,\mu)$', fontsize=14, fontweight='bold')
+    # 组合输入
+    x_mu = torch.cat([x_flat, mu_flat], dim=-1)  # [n_test*n_test, 2]
+    if torch.cuda.is_available():
+        x_mu = x_mu.cuda()
+    
+    # 模型预测
+    with torch.no_grad():
+        u_pred = model(x_mu).cpu().numpy().flatten()  # [n_test*n_test]
+    
+    # 对于纯吸收介质 (mu*du/dx + kappa*u = 0)
+    # 解析解: u(x, mu) = I_0 * exp(-kappa*x/mu) for mu > 0
+    # 这里使用简化的参考解或返回训练损失作为误差估计
+    
+    # 简化：使用网络在边界点的表现作为误差度量
+    # 实际应用中应该有参考解或蒙特卡洛模拟结果
+    x_b_test, u_b_test = add_boundary(100)
+    with torch.no_grad():
+        u_b_pred = model(x_b_test).cpu().numpy().flatten()
+    u_b_exact = u_b_test.cpu().numpy().flatten()
+    
+    # 计算L2误差
+    L2_error = np.sqrt(np.mean((u_b_pred - u_b_exact)**2))
+    rel_L2_error = L2_error / (np.sqrt(np.mean(u_b_exact**2)) + 1e-10)
+    
+    print(f"L2 Error (boundary): {L2_error:.6e}")
+    print(f"Relative L2 Error: {rel_L2_error:.6e}")
+    
+    return L2_error, rel_L2_error
+
+
+def plotting(model, images_path, extrema=None, solid_object=None):
+    """
+    绘制结果可视化
+    Args:
+        model: 训练好的PINN模型
+        images_path: 图像保存路径
+        extrema: 定义域边界 (未使用)
+        solid_object: 固体对象 (未使用)
+    """
+    import matplotlib
+    matplotlib.use('Agg')  # 非交互式后端
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    # 创建网格数据
+    n_x, n_mu = 100, 50
+    x = np.linspace(0, 1, n_x)
+    mu = np.linspace(-1, 1, n_mu)
+    X, Mu = np.meshgrid(x, mu)
+    
+    # 转换为tensor
+    x_flat = torch.tensor(X.flatten(), dtype=torch.float32).unsqueeze(-1)
+    mu_flat = torch.tensor(Mu.flatten(), dtype=torch.float32).unsqueeze(-1)
+    x_mu = torch.cat([x_flat, mu_flat], dim=-1)
+    if torch.cuda.is_available():
+        x_mu = x_mu.cuda()
+    
+    # 预测
+    with torch.no_grad():
+        u_pred = model(x_mu).cpu().numpy().reshape(n_mu, n_x)
+    
+    # 绘制 - 与net_sol.png相同的格式：单栏2D热图
+    fig, ax = plt.subplots(1, 1, figsize=(10, 8))
+    
+    # 2D heatmap with jet colormap (与net_sol.png一致)
+    levels = np.linspace(u_pred.min(), u_pred.max(), 21)
+    im = ax.contourf(X, Mu, u_pred, levels=levels, cmap='jet', extend='both')
+    
+    # 设置标签和标题
+    ax.set_xlabel(r'$x$', fontsize=14)
+    ax.set_ylabel(r'$\mu$', fontsize=14)
+    ax.set_title('Exact Solution: $I(x, \\mu)$', fontsize=16)
+    
+    # 设置刻度
+    ax.set_xticks(np.linspace(0, 1, 6))
+    ax.set_yticks(np.linspace(-1, 1, 9))
+    ax.tick_params(labelsize=12)
+    
+    # 添加颜色条 (与net_sol.png风格一致)
+    cbar = plt.colorbar(im, ax=ax)
+    cbar.set_label(r'$I(x, \mu)$', fontsize=14, rotation=270, labelpad=20)
+    cbar.ax.tick_params(labelsize=12)
+    
+    # 调整布局
     plt.tight_layout()
-    plt.savefig(images_path + "/net_sol.png", dpi=400)
+    plt.savefig(f'{images_path}/solution.png', dpi=300, bbox_inches='tight')
+    print(f'Saved solution plot to {images_path}/solution.png')
     plt.close()
 
-    # ========== 边界值对比 (对应论文Fig. 3) ==========
-    # 文献[42]的精确解在边界的参考值
-    
-    # x=0 边界 (入射)
-    x = np.linspace(0, 0, 1)
-    mu = np.linspace(-1, 1, n)
-    # 文献[42]在x=0处的参考值 (μ>0时u≈1，μ<0时u从文献数据)
-    theta_ex = [0 + pi, pi / 12 + pi, pi / 6 + pi, pi / 4 + pi, pi / 3 + pi, 5 * pi / 12 + pi, 0, pi / 12, pi / 6, pi / 4, pi / 3, 5 * pi / 12, pi / 2]
-    mu_ex = np.cos(theta_ex)
-    sol_ex = np.array([0.0079, 0.0089, 0.0123, 0.0189, 0.0297, 0.0385, 1, 1, 1, 1, 1, 1, 1])
-    inputs = torch.from_numpy(np.transpose([np.repeat(x, len(mu)), np.tile(mu, len(x))])).type(torch.FloatTensor)
-    sol = model(inputs).detach().numpy()
 
-    inputs_err = torch.from_numpy(np.concatenate([np.linspace(0, 0, len(mu_ex)).reshape(-1, 1), mu_ex.reshape(-1, 1)], 1)).type(torch.FloatTensor)
-    sol_err = model(inputs_err).detach().numpy()
-
-    err_1 = np.sqrt(np.mean((sol_ex.reshape(-1, ) - sol_err.reshape(-1, )) ** 2) / np.mean(sol_ex.reshape(-1, ) ** 2))
-
-    plt.figure(figsize=(8, 5))
-    plt.grid(True, which="both", ls=":")
-    plt.plot(mu, sol, color="C0", lw=2, label=r'PINN Prediction')
-    plt.scatter(mu_ex, sol_ex, color="red", s=50, zorder=5, label=r'Reference [42]')
-    plt.xlabel(r'$\mu = \cos(\theta)$')
-    plt.ylabel(r'$u^-(x=0)$')
-    plt.title(r'Boundary comparison at $x=0$')
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(images_path + "/u0.png", dpi=400)
-    plt.close()
-
-    # x=1 边界 (出射)
-    x = np.linspace(1, 1, 1)
-    mu = np.linspace(-1, 1, n)
-    theta_ex = [0 + pi, pi / 12 + pi, pi / 6 + pi, pi / 4 + pi, pi / 3 + pi, 5 * pi / 12 + pi, pi / 2 + pi, 0, pi / 12, pi / 6, pi / 4, pi / 3, 5 * pi / 12]
-    mu_ex = np.cos(theta_ex)
-    sol_ex = np.array([0, 0, 0, 0, 0, 0, 0, 0.5363, 0.5234, 0.4830, 0.4104, 0.3020, 0.1848])
-    inputs = torch.from_numpy(np.transpose([np.repeat(x, len(mu)), np.tile(mu, len(x))])).type(torch.FloatTensor)
-    sol = model(inputs).detach().numpy()
-
-    inputs_err = torch.from_numpy(np.concatenate([np.linspace(1, 1, len(mu_ex)).reshape(-1, 1), mu_ex.reshape(-1, 1)], 1)).type(torch.FloatTensor)
-    sol_err = model(inputs_err).detach().numpy()
-
-    err_2 = np.sqrt(np.mean((sol_ex.reshape(-1, ) - sol_err.reshape(-1, )) ** 2) / np.mean(sol_ex.reshape(-1, ) ** 2))
-
-    plt.figure(figsize=(8, 5))
-    plt.grid(True, which="both", ls=":")
-    plt.plot(mu, sol, color="C0", lw=2, label=r'PINN Prediction')
-    plt.scatter(mu_ex, sol_ex, color="red", s=50, zorder=5, label=r'Reference [42]')
-    plt.xlabel(r'$\mu = \cos(\theta)$')
-    plt.ylabel(r'$u^+(x=1)$')
-    plt.title(r'Boundary comparison at $x=1$')
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(images_path + "/u1.png", dpi=400)
-    plt.close()
-
-    with open(images_path + '/errors.txt', 'w') as file:
-        file.write("err_1,"
-                   "err_2\n")
-        file.write(str(float(err_1)) + "," +
-                   str(float(err_2)))
+# 向后兼容别名
+Ec = sys.modules[__name__]

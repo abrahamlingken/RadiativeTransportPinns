@@ -69,6 +69,8 @@ class bcolors:
 
 # 一维平板几何辐射传输问题（论文Section 3.2）
 # 使用 RadTrans1D 模型求解一维 slab geometry 辐射传输方程
+# 添加父目录以找到 EquationModels
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import EquationModels.RadTrans1D as Ec
 
 import ObjectClass
