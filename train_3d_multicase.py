@@ -250,9 +250,28 @@ def train_single_case(case_key, chunk_size=4096):
         pass
     
     fake_import = FakeImportFile()
+    
+    # 复制 Ec 的所有属性
     for attr in dir(Ec):
         if not attr.startswith('_'):
             setattr(fake_import, attr, getattr(Ec, attr))
+    
+    # 添加必要的模块（ModelClassTorch2 依赖这些）
+    fake_import.torch = torch
+    fake_import.nn = nn
+    fake_import.optim = optim
+    fake_import.np = np
+    fake_import.json = json
+    fake_import.time = time
+    fake_import.math = math
+    fake_import.pi = math.pi
+    
+    # 添加 qmc（用于 Sobol 采样）
+    try:
+        from scipy.stats import qmc
+        fake_import.qmc = qmc
+    except ImportError:
+        pass
     
     sys.modules['ImportFile'] = fake_import
     
