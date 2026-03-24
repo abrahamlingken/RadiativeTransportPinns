@@ -209,68 +209,44 @@ def train_single_case(case_key, chunk_size=4096):
     iteration = 0
     
     def closure():
-        """
-        L-BFGS closure函数
-        
-        真正的内存安全策略：
-        1. zero_grad() 清除旧梯度
-        2. 遍历每个chunk：
-           - 计算该chunk的loss
-           - 立即backward()（梯度累加到param.grad）
-           - 计算图立即释放（不保留）
-        3. 返回总loss（标量，无计算图）
-        """
         nonlocal iteration
         
-        # 1. 清除旧梯度
         optimizer.zero_grad()
-        
         total_loss = 0.0
-        n_chunks = 0
         
-        # ========================================================================
-        # 边界损失（通常数据量小，不需要chunking）
-        # ========================================================================
+        # ========== 1. 计算边界损失 (立即反向传播释放显存) ==========
         u_pred_b, u_train_b = physics.apply_bc(x_b, y_b, model)
-        
-        if u_pred_b.shape[0] > 0:
-            loss_b = torch.mean((u_pred_b - u_train_b) ** 2)
-            # 边界损失直接backward（通常不大）
-            loss_b.backward()
+        if u_pred_b.numel() > 0:
+            loss_b = torch.mean((u_pred_b - u_train_b)**2)
+            loss_b.backward()  # 立即反向传播，将梯度累加到叶子节点，并释放计算图
             total_loss += loss_b.item()
-        
-        # ========================================================================
-        # 残差损失（大batch，使用真正的梯度累加）
-        # ========================================================================
-        N_coll = x_coll.shape[0]
-        lambda_res = model.lambda_residual
-        
-        # 分块处理，每个chunk立即backward
-        for i in range(0, N_coll, chunk_size):
-            end_i = min(i + chunk_size, N_coll)
-            x_chunk = x_coll[i:end_i]
+            del u_pred_b, u_train_b, loss_b
             
-            # 计算该chunk的残差
+        # ========== 2. 计算残差损失 (真正的 Chunking 梯度累加) ==========
+        N_coll = x_coll.shape[0]
+        n_chunks = (N_coll + chunk_size - 1) // chunk_size
+        lambda_residual = NETWORK_PROPERTIES["residual_parameter"]
+        
+        for i in range(n_chunks):
+            start_idx = i * chunk_size
+            end_idx = min((i + 1) * chunk_size, N_coll)
+            x_chunk = x_coll[start_idx:end_idx]
+            
+            # 计算当前块的 PDE 残差
             res_chunk = physics.compute_res(model, x_chunk)
             
-            # 该chunk的loss
-            loss_f_chunk = torch.mean(res_chunk ** 2)
+            # 乘以权重，保证与整体 mean() 算出来的梯度缩放比例一致
+            weight = (end_idx - start_idx) / N_coll
+            loss_chunk = lambda_residual * torch.mean(res_chunk**2) * weight
             
-            # 关键：立即backward，梯度累加到param.grad
-            # 这是真正的梯度累加！backward后不保留计算图
-            loss_f_chunk.backward()
+            # 极其关键：立即反向传播并销毁图，保护显存！
+            loss_chunk.backward()
+            total_loss += loss_chunk.item()
             
-            # 累加标量loss（detach，无计算图）
-            total_loss += lambda_res * loss_f_chunk.item()
-            n_chunks += 1
+            # 手动销毁大张量引用
+            del res_chunk, loss_chunk, x_chunk
             
-            # 不调用torch.cuda.empty_cache()！
-            # PyTorch会自动管理显存，频繁调用反而拖慢
-        
-        # 返回总loss（标量，无计算图，仅用于L-BFGS监控）
-        iteration += 1
-        
-        # 记录历史
+        # ========== 3. 日志记录与进度输出 ==========
         if iteration % 10 == 0:
             training_history['epochs'].append(iteration)
             training_history['total_loss'].append(total_loss)
@@ -278,10 +254,14 @@ def train_single_case(case_key, chunk_size=4096):
             
             if iteration % 100 == 0:
                 elapsed = time.time() - start_time
-                print(f"  Iter {iteration:5d} | Loss: {total_loss:.6e} | Time: {elapsed:.1f}s | Chunks: {n_chunks}")
+                print(f"  Iter {iteration:5d} | Loss: {total_loss:.6e} | Time: {elapsed:.1f}s")
+                if torch.cuda.is_available():
+                    print(f"          GPU Memory: {torch.cuda.memory_allocated() / 1024**3:.2f} GB")
+                    
+        iteration += 1
         
-        # 返回标量（L-BFGS需要）
-        return torch.tensor(total_loss, device=device, requires_grad=False)
+        # L-BFGS 要求闭包必须返回包含 total loss 的 Tensor
+        return torch.tensor(total_loss, device=device, requires_grad=True)
     
     # 执行训练
     try:
