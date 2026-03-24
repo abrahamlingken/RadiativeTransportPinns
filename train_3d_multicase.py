@@ -521,6 +521,7 @@ def train_single_case(case_key, chunk_size=4096):
 def main():
     """主程序：运行所有3D案例"""
     import argparse
+    import torch
     
     parser = argparse.ArgumentParser(description='3D RTE Multi-Case Training')
     parser.add_argument('--case', type=str, default='all',
