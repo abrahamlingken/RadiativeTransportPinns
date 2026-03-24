@@ -13,6 +13,11 @@ train_3d_multicase.py - 3D RTE 多工况自动训练流水线
 
 import sys
 import os
+
+# 添加项目根目录到路径（必须在其他导入之前）
+script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, script_dir)
+
 import json
 import time
 import math
@@ -184,10 +189,6 @@ def train_single_case(case_key, chunk_size=4096):
     import torch.nn as nn
     import torch.optim as optim
     import numpy as np
-    
-    # 添加项目根目录到路径以导入 DatasetTorch2
-    import sys
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     
     config = CASE_CONFIGS[case_key]
     folder_path = config['folder']
