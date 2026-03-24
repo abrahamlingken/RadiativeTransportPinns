@@ -110,21 +110,29 @@ def set_3d_physics_params(kappa_val, sigma_val, g_val):
 # Chunking Loss 实现
 # ============================================
 
-def create_custom_loss(Ec, chunk_size=4096):
+def create_custom_loss(Ec, default_chunk_size=4096):
     """
-    创建带Chunking机制的CustomLoss
+    创建带Chunking机制的CustomLoss类
     
     Args:
         Ec: 方程模块
-        chunk_size: 分块大小，24GB显存建议4096
+        default_chunk_size: 默认分块大小
+    
+    Returns:
+        CustomLoss类
     """
     import torch
     import torch.nn as nn
     
+    # 捕获 Ec 和 default_chunk_size
+    _Ec = Ec
+    _default_chunk_size = default_chunk_size
+    
     class CustomLoss(nn.Module):
-        def __init__(self, chunk_size=4096):
+        def __init__(self, chunk_size=None):
             super(CustomLoss, self).__init__()
-            self.chunk_size = chunk_size
+            # 如果没有提供 chunk_size，使用默认值
+            self.chunk_size = chunk_size if chunk_size is not None else _default_chunk_size
         
         def forward(self, network, x_u_train, u_train, x_b_train, u_b_train,
                     x_f_train, x_obj, u_obj, dataclass, training_ic, computing_error=False):
@@ -182,7 +190,7 @@ def create_custom_loss(Ec, chunk_size=4096):
             loss = lambda_residual * loss_f + loss_b
             return loss
     
-    return CustomLoss(chunk_size=chunk_size)
+    return CustomLoss  # 返回类，不是实例
 
 
 # ============================================
