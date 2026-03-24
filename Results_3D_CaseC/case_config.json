@@ -1,0 +1,7 @@
+{
+  "case": "3D_C",
+  "kappa": 0.1,
+  "sigma_s": 0.9,
+  "g": 0.6,
+  "chunk_size": 4096
+}
