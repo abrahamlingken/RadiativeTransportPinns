@@ -15,16 +15,20 @@ import sys
 import os
 
 # 添加项目根目录到路径（必须在其他导入之前）
-# 处理 VS Code 运行时的路径问题
+# 获取项目根目录（脚本所在目录）
 if '__file__' in dir():
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 else:
-    script_dir = os.getcwd()
-sys.path.insert(0, script_dir)
+    PROJECT_ROOT = os.getcwd()
 
-# 调试：打印路径信息
-# print(f"[Debug] Script directory: {script_dir}")
-# print(f"[Debug] sys.path: {sys.path[:2]}")
+# 确保项目根目录在路径中
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+# 添加Core目录到路径
+CORE_PATH = os.path.join(PROJECT_ROOT, 'Core')
+if CORE_PATH not in sys.path:
+    sys.path.insert(0, CORE_PATH)
 
 import json
 import time
@@ -42,7 +46,7 @@ CASE_CONFIGS = {
         'kappa': 1.0,
         'sigma_s': 0.0,
         'g': 0.0,
-        'folder': 'Results_3D_CaseA'
+        'folder': os.path.join(PROJECT_ROOT, 'Results_3D_CaseA')
     },
     '3D_B': {
         'name': 'Case3D_B_Isotropic',
@@ -50,7 +54,7 @@ CASE_CONFIGS = {
         'kappa': 0.5,
         'sigma_s': 0.5,
         'g': 0.0,
-        'folder': 'Results_3D_CaseB'
+        'folder': os.path.join(PROJECT_ROOT, 'Results_3D_CaseB')
     },
     '3D_C': {
         'name': 'Case3D_C_ForwardScattering',
@@ -58,7 +62,7 @@ CASE_CONFIGS = {
         'kappa': 0.1,
         'sigma_s': 0.9,
         'g': 0.6,
-        'folder': 'Results_3D_CaseC'
+        'folder': os.path.join(PROJECT_ROOT, 'Results_3D_CaseC')
     }
 }
 
@@ -258,6 +262,11 @@ def train_single_case(case_key, chunk_size=4096):
     if project_root not in sys.path:
         sys.path.insert(0, project_root)
     
+    # 【新增的两行】：把 Core 文件夹也加入 Python 的检索路径
+    core_path = os.path.join(project_root, 'Core')
+    if core_path not in sys.path:
+        sys.path.insert(0, core_path)
+
     from DatasetTorch2 import DefineDataset
     import ModelClassTorch2 as _mc
     

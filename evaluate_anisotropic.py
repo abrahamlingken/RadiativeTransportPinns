@@ -36,8 +36,13 @@ rcParams['xtick.labelsize'] = 10
 rcParams['ytick.labelsize'] = 10
 rcParams['figure.dpi'] = 400
 
-# 添加 Core 目录到路径
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'Core'))
+# 添加项目根目录和 Core 目录到路径
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+CORE_PATH = os.path.join(PROJECT_ROOT, 'Core')
+if CORE_PATH not in sys.path:
+    sys.path.insert(0, CORE_PATH)
 
 
 # ==============================================================================
@@ -50,8 +55,8 @@ ANISOTROPIC_CASE_CONFIGS = {
         'g': 0.5,
         'kappa': 0.5,
         'sigma_s': 0.5,
-        'folder': 'Results_1D_CaseD',
-        'dom_file': 'dom_solution_g0.5.npy'
+        'folder': os.path.join(PROJECT_ROOT, 'Results_1D_CaseD'),
+        'dom_file': os.path.join(PROJECT_ROOT, 'dom_solution_g0.5.npy')
     },
     'E': {
         'name': 'CaseE_Backward',
@@ -59,8 +64,8 @@ ANISOTROPIC_CASE_CONFIGS = {
         'g': -0.5,
         'kappa': 0.5,
         'sigma_s': 0.5,
-        'folder': 'Results_1D_CaseE',
-        'dom_file': 'dom_solution_g-0.5.npy'
+        'folder': os.path.join(PROJECT_ROOT, 'Results_1D_CaseE'),
+        'dom_file': os.path.join(PROJECT_ROOT, 'dom_solution_g-0.5.npy')
     },
     'F': {
         'name': 'CaseF_StrongForward',
@@ -68,8 +73,8 @@ ANISOTROPIC_CASE_CONFIGS = {
         'g': 0.8,
         'kappa': 0.5,
         'sigma_s': 0.5,
-        'folder': 'Results_1D_CaseF',
-        'dom_file': 'dom_solution_g0.8.npy'
+        'folder': os.path.join(PROJECT_ROOT, 'Results_1D_CaseF'),
+        'dom_file': os.path.join(PROJECT_ROOT, 'dom_solution_g0.8.npy')
     }
 }
 
