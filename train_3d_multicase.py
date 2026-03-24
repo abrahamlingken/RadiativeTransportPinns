@@ -297,7 +297,7 @@ def train_single_case(case_key, chunk_size=4096):
     init_xavier = _mc.init_xavier
     
     # ========== 步骤 5: 设置 CustomLoss (带Chunking) ==========
-    CustomLoss = create_custom_loss(Ec, chunk_size=chunk_size)
+    CustomLoss = create_custom_loss(Ec, default_chunk_size=chunk_size)
     _mc.CustomLoss = CustomLoss
     
     # ========== 步骤 6: 配置参数 ==========
