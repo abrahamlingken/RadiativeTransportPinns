@@ -32,7 +32,13 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
+# 添加 Core 目录（用于 torch.load 找到 ModelClassTorch2）
+CORE_PATH = os.path.join(PROJECT_ROOT, 'Core')
+if CORE_PATH not in sys.path:
+    sys.path.insert(0, CORE_PATH)
+
 from EquationModels import RadTrans3D_Complex as Ec
+from ModelClassTorch2 import Pinns  # 确保加载时能找到类
 
 
 def load_model_and_compute_G(case_folder, x_tensor, y_tensor, z_tensor, engine):
