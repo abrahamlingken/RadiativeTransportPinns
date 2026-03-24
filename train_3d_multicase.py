@@ -257,18 +257,13 @@ def train_single_case(case_key, chunk_size=4096):
     sys.modules['ImportFile'] = fake_import
     
     # ========== 步骤 4: 导入 ModelClassTorch2 ==========
-    # 确保路径正确
-    project_root = os.path.dirname(os.path.abspath(__file__)) if '__file__' in dir() else os.getcwd()
-    if project_root not in sys.path:
-        sys.path.insert(0, project_root)
+    # 确保路径正确（使用全局 PROJECT_ROOT）
+    if PROJECT_ROOT not in sys.path:
+        sys.path.insert(0, PROJECT_ROOT)
     
-    # 【新增的两行】：把 Core 文件夹也加入 Python 的检索路径
-    core_path = os.path.join(project_root, 'Core')
-    if core_path not in sys.path:
-        sys.path.insert(0, core_path)
-
-    from DatasetTorch2 import DefineDataset
-    import ModelClassTorch2 as _mc
+    # 从 Core 目录导入
+    from Core.DatasetTorch2 import DefineDataset
+    from Core import ModelClassTorch2 as _mc
     
     _mc.Ec = Ec
     Pinns = _mc.Pinns

@@ -36,7 +36,10 @@ for attr in dir(Ec):
 
 sys.modules['ImportFile'] = fake_import
 
-# 5. 现在导入PyTorch和其他库
+# 5. 添加Core目录到路径
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'Core'))
+
+# 6. 现在导入PyTorch和其他库
 import torch
 import torch.nn as nn
 import torch.optim as optim

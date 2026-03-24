@@ -1,0 +1,12 @@
+Case,CaseD_ForwardScattering
+Description,Forward scattering (g=0.5)
+Kappa,0.5
+Sigma_s,0.5
+G_HG,0.5
+ScatteringType,Forward
+Nu_train,2048
+Nf_train,16384
+train_time,933.3056609630585
+L2_norm_test,4.217141e-05
+rel_L2_norm,5.963938e-05
+error_train,0.00020274407870601863

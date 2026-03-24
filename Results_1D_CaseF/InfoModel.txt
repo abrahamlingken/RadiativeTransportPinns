@@ -1,0 +1,12 @@
+Case,CaseF_StrongForward
+Description,Strong forward scattering (g=0.8)
+Kappa,0.5
+Sigma_s,0.5
+G_HG,0.8
+ScatteringType,Forward
+Nu_train,2048
+Nf_train,16384
+train_time,804.7073738574982
+L2_norm_test,0.00012105178
+rel_L2_norm,0.00017119307
+error_train,0.0002522182767279446

@@ -1,0 +1,13 @@
+PINN vs Exact Solution (Pure Absorption) Summary
+======================================================================
+
+Exact Solution: Beer-Lambert Law
+  u(x, mu) = exp(-kappa * x / mu)  for mu > 0
+  u(x, mu) = 0                     for mu <= 0
+
+Case A (kappa = 0.5):
+  Relative L2 Error: 0.000570
+  Absolute L2 Error: 0.000274
+  Maximum Error:     0.009336
+  G(x) Rel. Error:   0.000191
+

@@ -1,0 +1,33 @@
+Anisotropic Scattering: PINN vs DOM Evaluation Summary
+======================================================================
+
+Case D: Forward Scattering (g = 0.5)
+Case E: Backward Scattering (g = -0.5)
+Case F: Strong Forward Scattering (g = 0.8)
+
+----------------------------------------------------------------------
+Case     g          Rel. L2 Error      Max Error       G(x) Error     
+----------------------------------------------------------------------
+D        0.5        0.002887           0.015200        0.002642       
+E        -0.5       0.003207           0.015216        0.003088       
+F        0.8        0.003487           0.018032        0.003305       
+
+======================================================================
+
+Case D (g = 0.5):
+  Relative L2 Error: 0.002887 (0.2887%)
+  Absolute L2 Error: 0.001231
+  Maximum Error:     0.015200
+  G(x) Rel. Error:   0.002642
+
+Case E (g = -0.5):
+  Relative L2 Error: 0.003207 (0.3207%)
+  Absolute L2 Error: 0.001286
+  Maximum Error:     0.015216
+  G(x) Rel. Error:   0.003088
+
+Case F (g = 0.8):
+  Relative L2 Error: 0.003487 (0.3487%)
+  Absolute L2 Error: 0.001424
+  Maximum Error:     0.018032
+  G(x) Rel. Error:   0.003305

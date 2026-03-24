@@ -1,0 +1,12 @@
+Case,CaseE_BackwardScattering
+Description,Backward scattering (g=-0.5)
+Kappa,0.5
+Sigma_s,0.5
+G_HG,-0.5
+ScatteringType,Backward
+Nu_train,2048
+Nf_train,16384
+train_time,1118.6561436653137
+L2_norm_test,9.884106e-05
+rel_L2_norm,0.00013978237
+error_train,0.00024760165251791477

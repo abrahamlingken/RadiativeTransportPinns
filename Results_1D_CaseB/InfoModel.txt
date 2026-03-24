@@ -1,0 +1,11 @@
+Case,CaseB_OpticallyThick
+Description,π‚—ß∫ÒΩÈ÷ : ¶”=4.0, ¶ÿ=0.5
+Kappa,2.0
+Sigma_s,2.0
+G_HG,0.0
+Nu_train,2560
+Nf_train,20480
+train_time,200.4787826538086
+L2_norm_test,6.5169144e-05
+rel_L2_norm,9.216309e-05
+error_train,0.0002719732583500445

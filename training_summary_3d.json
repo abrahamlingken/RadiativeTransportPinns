@@ -1,0 +1,23 @@
+[
+  {
+    "case": "3D_A",
+    "final_loss": null,
+    "iterations": 0,
+    "time": 0,
+    "error": "name 'nn' is not defined"
+  },
+  {
+    "case": "3D_B",
+    "final_loss": null,
+    "iterations": 0,
+    "time": 0,
+    "error": "name 'nn' is not defined"
+  },
+  {
+    "case": "3D_C",
+    "final_loss": null,
+    "iterations": 0,
+    "time": 0,
+    "error": "name 'nn' is not defined"
+  }
+]

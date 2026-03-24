@@ -1,0 +1,11 @@
+Case,CaseC_HighScattering
+Description,«ø…¢…‰ΩÈ÷ : ¶”=1.0, ¶ÿ=0.9
+Kappa,0.1
+Sigma_s,0.9
+G_HG,0.0
+Nu_train,3072
+Nf_train,16384
+train_time,337.3972055912018
+L2_norm_test,0.000101669895
+rel_L2_norm,0.00014378295
+error_train,0.000140376461786218

@@ -1,0 +1,21 @@
+PINN vs DOM Evaluation Summary
+======================================================================
+
+Case A:
+  Relative L2 Error: 0.002565
+  Absolute L2 Error: 0.001103
+  Maximum Error:     0.037533
+  G(x) Rel. Error:   0.002142
+
+Case B:
+  Relative L2 Error: 0.011120
+  Absolute L2 Error: 0.002614
+  Maximum Error:     0.120317
+  G(x) Rel. Error:   0.011435
+
+Case C:
+  Relative L2 Error: 0.000958
+  Absolute L2 Error: 0.000511
+  Maximum Error:     0.014013
+  G(x) Rel. Error:   0.000405
+

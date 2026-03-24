@@ -1,0 +1,11 @@
+Case,CaseA_Baseline
+Description,»ù×¼°¸Àý: ¦Ó=1.0, ¦Ø=0.5
+Kappa,0.5
+Sigma_s,0.5
+G_HG,0.0
+Nu_train,2048
+Nf_train,16384
+train_time,364.7306728363037
+L2_norm_test,4.0536535e-05
+rel_L2_norm,5.7327317e-05
+error_train,0.00017963194113690406
