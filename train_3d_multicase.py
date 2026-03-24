@@ -185,6 +185,10 @@ def train_single_case(case_key, chunk_size=4096):
     import torch.optim as optim
     import numpy as np
     
+    # 添加项目根目录到路径以导入 DatasetTorch2
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    
     config = CASE_CONFIGS[case_key]
     folder_path = config['folder']
     
