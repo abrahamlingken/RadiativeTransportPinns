@@ -207,7 +207,14 @@ def generate_quadrature_3d(n_theta=N_THETA_QUAD, n_phi=N_PHI_QUAD):
 
 
 # 预计算求积点 (全局缓存)
-THETA_Q, PHI_Q, W_THETA, W_PHI, DIR_VECTORS, SOLID_ANGLE_WEIGHTS = generate_quadrature_3d()
+_THETA_Q, _PHI_Q, W_THETA, W_PHI, DIR_VECTORS, SOLID_ANGLE_WEIGHTS = generate_quadrature_3d()
+
+# 创建完整的2D网格 (用于scatter计算)
+N_THETA = N_THETA_QUAD
+N_PHI = N_PHI_QUAD
+_THETA_GRID, _PHI_GRID = torch.meshgrid(_THETA_Q, _PHI_Q, indexing='ij')  # shape: [n_theta, n_phi]
+THETA_FLAT = _THETA_GRID.reshape(-1)  # shape: [N_q]
+PHI_FLAT = _PHI_GRID.reshape(-1)      # shape: [N_q]
 
 
 def compute_scattering_3d(x, y, z, theta, phi, model, n_theta=N_THETA_QUAD, n_phi=N_PHI_QUAD, g=G_HG):
@@ -254,10 +261,11 @@ def compute_scattering_3d(x, y, z, theta, phi, model, n_theta=N_THETA_QUAD, n_ph
     xyz = torch.stack([x, y, z], dim=-1)  # shape: [N, 3]
     xyz_repeated = torch.repeat_interleave(xyz, N_q, dim=0)  # shape: [N*N_q, 3]
     
-    # 方向坐标: [N_q, 3] -> 使用 repeat 铺陈至 [N*N_q, 2]
+    # 方向坐标: [N_q] -> 使用 repeat 铺陈至 [N*N_q]
     # theta_q和phi_q是求积点，不是当前点的方向
-    theta_q_expanded = THETA_Q.unsqueeze(0).repeat(N, 1).reshape(-1)  # shape: [N*N_q]
-    phi_q_expanded = PHI_Q.unsqueeze(0).repeat(N, 1).reshape(-1)      # shape: [N*N_q]
+    # 使用展平后的网格点
+    theta_q_expanded = THETA_FLAT.repeat(N)  # shape: [N*N_q]
+    phi_q_expanded = PHI_FLAT.repeat(N)      # shape: [N*N_q]
     
     # 或者直接使用预计算的DIR_VECTORS
     # DIR_VECTORS: [N_q, 3] -> 重复 N 次 -> [N*N_q, 3]
@@ -437,8 +445,8 @@ def compute_incident_radiation_3d(x, y, z, model, n_theta=N_THETA_QUAD, n_phi=N_
     xyz = torch.stack([x, y, z], dim=-1)  # shape: [N, 3]
     xyz_repeated = torch.repeat_interleave(xyz, N_q, dim=0)  # shape: [N*N_q, 3]
     
-    theta_q_expanded = THETA_Q.unsqueeze(0).repeat(N, 1).reshape(-1)  # shape: [N*N_q]
-    phi_q_expanded = PHI_Q.unsqueeze(0).repeat(N, 1).reshape(-1)      # shape: [N*N_q]
+    theta_q_expanded = THETA_FLAT.repeat(N)  # shape: [N*N_q]
+    phi_q_expanded = PHI_FLAT.repeat(N)      # shape: [N*N_q]
     
     inputs = torch.cat([
         xyz_repeated,
