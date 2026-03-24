@@ -15,8 +15,16 @@ import sys
 import os
 
 # 添加项目根目录到路径（必须在其他导入之前）
-script_dir = os.path.dirname(os.path.abspath(__file__))
+# 处理 VS Code 运行时的路径问题
+if '__file__' in dir():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+else:
+    script_dir = os.getcwd()
 sys.path.insert(0, script_dir)
+
+# 调试：打印路径信息
+# print(f"[Debug] Script directory: {script_dir}")
+# print(f"[Debug] sys.path: {sys.path[:2]}")
 
 import json
 import time
@@ -245,6 +253,11 @@ def train_single_case(case_key, chunk_size=4096):
     sys.modules['ImportFile'] = fake_import
     
     # ========== 步骤 4: 导入 ModelClassTorch2 ==========
+    # 确保路径正确
+    project_root = os.path.dirname(os.path.abspath(__file__)) if '__file__' in dir() else os.getcwd()
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+    
     from DatasetTorch2 import DefineDataset
     import ModelClassTorch2 as _mc
     
