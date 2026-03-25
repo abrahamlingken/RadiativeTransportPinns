@@ -98,9 +98,12 @@ class RadTrans3D_Physics:
         ], dim=-1).reshape(-1, 3)
         
         # 立体角权重 dOmega = sin(theta) * dtheta * dphi
-        theta_weights = w_theta.reshape(-1, 1)
-        phi_weights = w_phi.reshape(1, -1)
-        self.solid_angle_weights = (theta_weights * phi_weights * sin_theta).reshape(-1)
+        # 关键修正：w_theta 是 Gauss-Legendre 在 μ=cos(θ) 上的权重
+        # 由于 dμ = -sin(θ)dθ，w_theta 已经包含了 sin(θ)dθ 的贡献
+        # 因此不需要再乘 sin_theta！
+        theta_weights = w_theta.reshape(-1, 1)  # 对应 sin(θ)dθ
+        phi_weights = w_phi.reshape(1, -1)      # 对应 dφ
+        self.solid_angle_weights = (theta_weights * phi_weights).reshape(-1)  # 修正：移除 * sin_theta
     
     # ========================================================================
     # 物理参数函数（支持常数或空间变化）
