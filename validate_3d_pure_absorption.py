@@ -303,32 +303,107 @@ def plot_G_comparison(model_path="Results_3D_CaseA/model.pkl"):
     print(f"  Mean abs error: {error_line.mean():.4e}")
     print(f"  Max rel error: {rel_error.max():.2%}")
     
-    # 绘图
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    # ==========================================
+    # 顶刊质量可视化
+    # ==========================================
     
-    # (a) G(x)对比
-    axes[0].plot(x_line, G_exact_line, 'k-', linewidth=2.5, label='Exact Analytical', marker='o', markevery=3)
-    axes[0].plot(x_line, G_pinn_line, color='#D62728', linestyle='--', linewidth=2, 
-                marker='s', markersize=6, markevery=3, label='PINN Prediction')
-    axes[0].set_xlabel(r'$x$', fontsize=12)
-    axes[0].set_ylabel(r'$G(x, 0.5, 0.5)$', fontsize=12)
-    axes[0].set_title(r'Incident Radiation along Centerline')
-    axes[0].legend(frameon=True)
-    axes[0].grid(True, linestyle='--', alpha=0.5)
+    # 颜色方案（Nature/Science风格）
+    color_exact = '#000000'      # 黑色
+    color_pinn = '#E41A1C'       # 红色
+    color_error = '#377EB8'      # 蓝色
+    color_fill = '#E41A1C'       # 误差填充色
     
-    # (b) 误差
-    axes[1].semilogy(x_line, error_line, 'b-', linewidth=2)
-    axes[1].set_xlabel(r'$x$', fontsize=12)
-    axes[1].set_ylabel(r'Absolute Error $|G_{exact} - G_{PINN}|$', fontsize=12)
-    axes[1].set_title(r'Absolute Error')
-    axes[1].grid(True, linestyle='--', alpha=0.5)
-    axes[1].axhline(y=error_line.mean(), color='r', linestyle='--', label=f'Mean: {error_line.mean():.2e}')
-    axes[1].legend()
+    # 创建图形
+    fig = plt.figure(figsize=(14, 5))
     
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'G_Validation_Centerline.png'), dpi=600)
-    plt.savefig(os.path.join(output_dir, 'G_Validation_Centerline.pdf'))
-    print(f"\n  Saved: {output_dir}/G_Validation_Centerline.png")
+    # ---------- 子图1: G(x)对比 ----------
+    ax1 = fig.add_subplot(121)
+    
+    # 精确解：黑色实线+圆点
+    line1 = ax1.plot(x_line, G_exact_line, color=color_exact, linestyle='-', 
+                     linewidth=2.2, label='Exact Analytical', zorder=3)
+    ax1.scatter(x_line[::3], G_exact_line[::3], c=color_exact, s=50, 
+                marker='o', zorder=4, edgecolors='white', linewidth=0.5)
+    
+    # PINN：红色虚线+方块
+    line2 = ax1.plot(x_line, G_pinn_line, color=color_pinn, linestyle='--', 
+                     linewidth=2.0, label='PINN Prediction', zorder=3)
+    ax1.scatter(x_line[::3], G_pinn_line[::3], c=color_pinn, s=45, 
+                marker='s', zorder=4, edgecolors='white', linewidth=0.5)
+    
+    # 添加阴影区域表示误差范围
+    ax1.fill_between(x_line, G_exact_line, G_pinn_line, alpha=0.15, 
+                     color=color_pinn, label='Discrepancy')
+    
+    ax1.set_xlabel(r'Spatial Position $x$ ($y=z=0.5$)', fontsize=13, fontweight='normal')
+    ax1.set_ylabel(r'Incident Radiation $G(x)$', fontsize=13, fontweight='normal')
+    ax1.set_title(r'(a) Centerline Distribution Comparison', fontsize=13, fontweight='bold', pad=10)
+    
+    # 图例
+    ax1.legend(loc='upper right', frameon=True, fancybox=False, 
+               edgecolor='black', fontsize=10, framealpha=0.95)
+    
+    # 网格：淡化
+    ax1.grid(True, linestyle='--', alpha=0.25, color='gray', linewidth=0.5)
+    ax1.set_xlim([0, 1])
+    ax1.set_ylim([0, max(G_exact_line.max(), G_pinn_line.max()) * 1.15])
+    
+    # 添加统计文本框
+    textstr = f'$L_2$ Error: {np.sqrt(np.mean(error_line**2)):.2e}\n' + \
+              f'$L_\infty$ Error: {error_line.max():.2e}\n' + \
+              f'Max Rel. Error: {rel_error.max()*100:.2f}%'
+    props = dict(boxstyle='round,pad=0.5', facecolor='wheat', alpha=0.9, edgecolor='black')
+    ax1.text(0.03, 0.97, textstr, transform=ax1.transAxes, fontsize=9,
+             verticalalignment='top', bbox=props, family='monospace')
+    
+    # ---------- 子图2: Absolute Error（顶刊风格） ----------
+    ax2 = fig.add_subplot(122)
+    
+    # 误差曲线
+    ax2.semilogy(x_line, error_line, color=color_error, linestyle='-', 
+                 linewidth=2.0, label='Absolute Error', zorder=3)
+    
+    # 添加渐变填充
+    ax2.fill_between(x_line, error_line, alpha=0.2, color=color_error)
+    
+    # 统计线
+    mean_error = error_line.mean()
+    max_error = error_line.max()
+    ax2.axhline(y=mean_error, color='#FF7F00', linestyle='--', linewidth=1.5, 
+                label=f'Mean: {mean_error:.2e}', zorder=2)
+    ax2.axhline(y=max_error, color='#984EA3', linestyle=':', linewidth=1.5, 
+                label=f'Max: {max_error:.2e}', zorder=2)
+    
+    # 添加误差棒风格的标注
+    ax2.errorbar([0.5], [mean_error], yerr=[[0], [max_error-mean_error]], 
+                 fmt='none', ecolor='gray', capsize=5, capthick=2, alpha=0.5)
+    
+    ax2.set_xlabel(r'Spatial Position $x$', fontsize=13, fontweight='normal')
+    ax2.set_ylabel(r'Absolute Error $|G_{\mathrm{exact}} - G_{\mathrm{PINN}}|$', 
+                   fontsize=13, fontweight='normal')
+    ax2.set_title(r'(b) Error Distribution (Log Scale)', fontsize=13, fontweight='bold', pad=10)
+    
+    # 图例
+    ax2.legend(loc='upper right', frameon=True, fancybox=False, 
+               edgecolor='black', fontsize=9, framealpha=0.95)
+    
+    # 网格
+    ax2.grid(True, linestyle='--', alpha=0.25, color='gray', linewidth=0.5, which='both')
+    ax2.set_xlim([0, 1])
+    
+    # 添加误差统计文本框
+    error_text = f'Error Statistics:\n' + \
+                 f'  Mean: {mean_error:.2e}\n' + \
+                 f'  Std:  {error_line.std():.2e}\n' + \
+                 f'  Max:  {max_error:.2e}'
+    props2 = dict(boxstyle='round,pad=0.5', facecolor='lightblue', alpha=0.9, edgecolor='black')
+    ax2.text(0.03, 0.97, error_text, transform=ax2.transAxes, fontsize=9,
+             verticalalignment='top', bbox=props2, family='monospace')
+    
+    plt.tight_layout(pad=2.0)
+    plt.savefig(os.path.join(output_dir, 'G_CaseA_Centerline_HighPrecision.png'), dpi=600, bbox_inches='tight')
+    plt.savefig(os.path.join(output_dir, 'G_CaseA_Centerline_HighPrecision.pdf'), bbox_inches='tight')
+    print(f"\n  Saved: {output_dir}/G_CaseA_Centerline_HighPrecision.png")
     plt.close()
     
     # ---------------------------------------------------------
@@ -354,6 +429,89 @@ def plot_G_comparison(model_path="Results_3D_CaseA/model.pkl"):
     
     G_test = exact_solver.compute_G(x_test, y_test, z_test)
     print(f"  Integrated G = {G_test:.4f}")
+    
+    # ==========================================
+    # 图2: 2D 中心截面 (z=0.5) 对比
+    # ==========================================
+    print("\n[2] Generating 2D center slice (z=0.5)...")
+    
+    n_grid = 40
+    x_grid = np.linspace(0.05, 0.95, n_grid)
+    y_grid = np.linspace(0.05, 0.95, n_grid)
+    X_grid, Y_grid = np.meshgrid(x_grid, y_grid)
+    Z_grid = np.full_like(X_grid, 0.5)
+    
+    # 精确解
+    print("  Computing exact 2D G field...")
+    G_exact_2d = exact_solver.compute_G_field(X_grid, Y_grid, Z_grid, verbose=True)
+    
+    # PINN预测
+    print("  Computing PINN 2D G field...")
+    x_flat = X_grid.reshape(-1)
+    y_flat = Y_grid.reshape(-1)
+    z_flat = np.full_like(x_flat, 0.5)
+    x_flat_t = torch.tensor(x_flat, dtype=torch.float32, device=device)
+    y_flat_t = torch.tensor(y_flat, dtype=torch.float32, device=device)
+    z_flat_t = torch.tensor(z_flat, dtype=torch.float32, device=device)
+    G_pinn_flat = load_pinn_G(model_path, x_flat_t, y_flat_t, z_flat_t, engine)
+    G_pinn_2d = G_pinn_flat.reshape(n_grid, n_grid)
+    
+    # 误差
+    Error_2d = np.abs(G_exact_2d - G_pinn_2d)
+    Rel_error_2d = Error_2d / (np.abs(G_exact_2d) + 1e-10)
+    
+    # 创建顶刊质量的1x3图
+    fig2, axes2 = plt.subplots(1, 3, figsize=(16, 4.5))
+    
+    # 统一色标
+    vmin = min(G_exact_2d.min(), G_pinn_2d.min())
+    vmax = max(G_exact_2d.max(), G_pinn_2d.max())
+    levels = np.linspace(vmin, vmax, 20)
+    
+    # (a) 精确解
+    cf1 = axes2[0].contourf(X_grid, Y_grid, G_exact_2d, levels=levels, cmap='viridis', extend='both')
+    axes2[0].set_title('(a) Exact Solution', fontsize=12, fontweight='bold')
+    axes2[0].set_xlabel('$x$', fontsize=11)
+    axes2[0].set_ylabel('$y$', fontsize=11)
+    axes2[0].set_aspect('equal')
+    cbar1 = fig2.colorbar(cf1, ax=axes2[0], fraction=0.046, pad=0.04)
+    cbar1.set_label('$G_{\mathrm{exact}}$', fontsize=10)
+    
+    # (b) PINN预测
+    cf2 = axes2[1].contourf(X_grid, Y_grid, G_pinn_2d, levels=levels, cmap='viridis', extend='both')
+    axes2[1].set_title('(b) PINN Prediction', fontsize=12, fontweight='bold')
+    axes2[1].set_xlabel('$x$', fontsize=11)
+    axes2[1].set_ylabel('$y$', fontsize=11)
+    axes2[1].set_aspect('equal')
+    cbar2 = fig2.colorbar(cf2, ax=axes2[1], fraction=0.046, pad=0.04)
+    cbar2.set_label('$G_{\mathrm{PINN}}$', fontsize=10)
+    
+    # (c) 误差（使用不同色图）
+    err_max = Error_2d.max()
+    err_levels = np.linspace(0, err_max, 20)
+    cf3 = axes2[2].contourf(X_grid, Y_grid, Error_2d, levels=err_levels, cmap='Reds', extend='max')
+    axes2[2].set_title(f'(c) Absolute Error\n(Max: {err_max:.2e}, Mean: {Error_2d.mean():.2e})', 
+                       fontsize=12, fontweight='bold')
+    axes2[2].set_xlabel('$x$', fontsize=11)
+    axes2[2].set_ylabel('$y$', fontsize=11)
+    axes2[2].set_aspect('equal')
+    cbar3 = fig2.colorbar(cf3, ax=axes2[2], fraction=0.046, pad=0.04)
+    cbar3.set_label('$|G_{\mathrm{exact}} - G_{\mathrm{PINN}}|$', fontsize=10)
+    
+    plt.suptitle(f'Case 3D-A (Pure Absorption): Incident Radiation at $z=0.5$\n' + 
+                 f'$\\kappa={KAPPA}$, 512 quadrature directions', 
+                 fontsize=13, fontweight='bold', y=1.02)
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'G_CaseA_2D_HighPrecision.png'), dpi=600, bbox_inches='tight')
+    plt.savefig(os.path.join(output_dir, 'G_CaseA_2D_HighPrecision.pdf'), bbox_inches='tight')
+    print(f"  Saved: {output_dir}/G_CaseA_2D_HighPrecision.png")
+    plt.close()
+    
+    # 2D误差统计
+    print(f"\n  2D Error Statistics:")
+    print(f"  Max Error: {err_max:.4e}")
+    print(f"  Mean Error: {Error_2d.mean():.4e}")
+    print(f"  Max Rel Error: {Rel_error_2d.max():.2%}")
     
     print("\n" + "="*70)
     print("Validation Complete!")
