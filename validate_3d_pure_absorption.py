@@ -145,33 +145,28 @@ class ExactGSolver:
     """
     精确解计算器
     
-    G(x) = ∫[4π] I(x, s) dΩ = ∫[0 to 2π] ∫[0 to π] I(x, θ, φ) sin(θ) dθ dφ
+    G(x) = ∫∫ I(x, θ, φ) sin(θ) dθ dφ = ∫[-1,1] ∫[0,2π] I dμ dφ
     
-    注意：不使用 1/(4π) 归一化，与PINN的 compute_incident_radiation 定义一致
+    其中 μ = cos(θ)，与PINN的 compute_incident_radiation 定义一致
     """
     def __init__(self, n_theta=32, n_phi=64):
         """
         初始化求积点
-        使用 Gauss-Legendre (θ) × 均匀 (φ)，与PINN一致
         """
         self.n_theta = n_theta
         self.n_phi = n_phi
         
-        # θ: Gauss-Legendre 求积点
-        xi, w = roots_legendre(n_theta)
-        self.theta_q = np.arccos(-xi)  # 映射到 [0, π]
-        # d(cosθ) = -sin(θ)dθ，权重 w 对应 d(cosθ)
-        # 所以 sin(θ)dθ = -d(cosθ)，权重取正值
-        self.w_theta = w * np.pi  # 包含 φ 方向的 2π？不，φ单独处理
-        
-        # 实际上，对于 ∫∫ sin(θ) dθ dφ：
-        # θ 积分：∫ sin(θ) dθ = ∫ d(-cosθ)，使用GL求积
-        # 权重 w 已经对应 d(cosθ) = sin(θ)dθ 的积分
+        # θ: 使用 μ = cos(θ) 的 Gauss-Legendre 求积
+        # ∫[0,π] sin(θ) dθ = ∫[-1,1] dμ = 2
+        mu, w_mu = roots_legendre(n_theta)  # μ ∈ [-1, 1]
+        self.theta_q = np.arccos(-mu)  # θ ∈ [0, π]
+        # w_mu 的和为 2，对应 ∫[-1,1] dμ
+        self.w_theta = w_mu  # ✅ 正确：和为 2，不需要乘任何因子
         
         # φ: 均匀分布
         self.phi_q = np.linspace(0, 2*np.pi, n_phi, endpoint=False)
         self.phi_q += np.pi / n_phi  # 中点偏移
-        self.w_phi = 2.0 * np.pi / n_phi
+        self.w_phi = np.full(n_phi, 2.0 * np.pi / n_phi)  # 每个权重 = 2π/n_phi
         
         # 创建2D网格
         self.theta_grid, self.phi_grid = np.meshgrid(self.theta_q, self.phi_q, indexing='ij')
@@ -186,15 +181,20 @@ class ExactGSolver:
         self.dir_vec_y = sin_theta * sin_phi
         self.dir_vec_z = cos_theta
         
-        # 权重：w_θ × w_φ
-        # 注意：w_θ 已经包含了 sin(θ) 因子（通过 d(cosθ) 变换）
-        theta_weights = self.w_theta.reshape(-1, 1)
-        phi_weights = self.w_phi * np.ones((1, n_phi))
-        self.weights = theta_weights * phi_weights
+        # 权重矩阵：w_θ[i] × w_φ[j]
+        # G = Σ_i Σ_j I(θ_i, φ_j) × w_θ[i] × w_φ[j]
+        theta_weights = self.w_theta.reshape(-1, 1)  # [n_theta, 1]
+        phi_weights = self.w_phi.reshape(1, -1)      # [1, n_phi]
+        self.weights = theta_weights * phi_weights   # [n_theta, n_phi]，广播乘法
         
-        print(f"[ExactGSolver] θ weights sum: {np.sum(self.w_theta):.6f} (should be ~2 for [-1,1] in cosθ)")
-        print(f"[ExactGSolver] φ weights sum: {np.sum(self.w_phi):.6f} (should be 2π)")
-        print(f"[ExactGSolver] Total weight sum: {np.sum(self.weights):.6f} (should be ~4π for full sphere)")
+        # 验证权重
+        w_theta_sum = np.sum(self.w_theta)
+        w_phi_sum = np.sum(self.w_phi)
+        w_total_sum = np.sum(self.weights)
+        
+        print(f"[ExactGSolver] θ weights sum: {w_theta_sum:.6f} (should be 2.0)")
+        print(f"[ExactGSolver] φ weights sum: {w_phi_sum:.6f} (should be 2π ≈ 6.283)")
+        print(f"[ExactGSolver] Total weight sum: {w_total_sum:.6f} (should be 4π ≈ 12.566)")
     
     def compute_G(self, x, y, z):
         """计算 G(x)"""
