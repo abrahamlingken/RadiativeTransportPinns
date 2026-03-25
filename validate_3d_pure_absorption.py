@@ -55,22 +55,34 @@ def compute_exact_intensity_single(x, y, z, s_vec, num_points=500):
     """
     计算单一方向的精确强度 I(x,y,z,s_vec)
     使用高精度反向射线追踪
+    
+    注意：s_vec 是光线传播方向，辐射从上游（边界）沿 s_vec 传播到当前点
+    我们需要沿着 -s_vec 方向回溯到边界
     """
     pos = np.array([x, y, z])
-    s_vec = np.array(s_vec)
-    s_vec = s_vec / np.linalg.norm(s_vec)
+    s_vec = np.array(s_vec, dtype=np.float64)
+    s_vec = s_vec / (np.linalg.norm(s_vec) + 1e-15)
     
-    # 计算到边界的距离
+    # 计算沿 -s_vec 方向到边界的距离（回溯到光线来源）
+    # 对于每个坐标轴，计算光线从当前点沿 -s 方向到达边界面的距离
     t_bounds = []
     for i in range(3):
-        if abs(s_vec[i]) > 1e-10:
-            t1 = -pos[i] / s_vec[i] if s_vec[i] > 0 else (1.0 - pos[i]) / s_vec[i]
-            if t1 > 0:
-                t_bounds.append(t1)
+        if abs(s_vec[i]) > 1e-12:
+            # 沿 -s 方向：如果 s[i] > 0，则 -s[i] < 0，向坐标减小的方向移动，到达 0 面
+            # 如果 s[i] < 0，则 -s[i] > 0，向坐标增大的方向移动，到达 1 面
+            if s_vec[i] > 0:
+                # 向 0 面移动
+                t = pos[i] / s_vec[i]  # pos[i] - t * s_vec[i] = 0
+            else:
+                # 向 1 面移动  
+                t = (pos[i] - 1.0) / s_vec[i]  # pos[i] - t * s_vec[i] = 1
+            
+            if t > 1e-12:
+                t_bounds.append(t)
     
     L = min(t_bounds) if t_bounds else 0.0
     
-    if L <= 0:
+    if L <= 1e-12:
         return 0.0
     
     # 使用Gauss-Legendre积分替代梯形法则（更高精度）
