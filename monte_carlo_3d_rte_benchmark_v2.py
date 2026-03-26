@@ -5,7 +5,10 @@ NOTE: Source term decoupled from kappa (Mathematical formulation for rigorous sc
 New equation: s·∇I + (κ+σs)I = Ib + (σs/4π)∫ΦI dΩ'
 [Old: s·∇I + (κ+σs)I = κ·Ib + (σs/4π)∫ΦI dΩ']
 
-This ensures Case C (κ=0.1, σs=0.9) has sufficient energy to test scattering integrals.
+Updated for top-tier journal publication:
+- Source: Ib = max(0, 1-5r), concentrated in r<0.2 region
+- Case B: kappa=0.5, sigma_s=4.5, beta=5.0 (dense isotropic)
+- Case C: kappa=0.5, sigma_s=4.5, g=0.8, beta=5.0 (dense forward scattering)
 """
 
 import numpy as np
@@ -30,8 +33,9 @@ SMOOTHING_SIGMA = 0.8    # 平滑核标准差（网格单元数）
 
 @njit(cache=True, fastmath=True)
 def source_term(x, y, z):
+    """高度局部化源项: max(0, 1-5r)，仅在r<0.2区域有源"""
     d = np.sqrt((x-0.5)**2 + (y-0.5)**2 + (z-0.5)**2)
-    val = 1.0 - 2.0 * d
+    val = 1.0 - 5.0 * d  # 收缩源区到r<0.2
     return val if val > 0.0 else 0.0
 
 @njit(cache=True, fastmath=True)
@@ -179,9 +183,9 @@ def compute_G_collision(n_photons, kappa, sigma_s, beta, g_hg, nx, ny, nz, dx, d
 
 def run_monte_carlo_v2(case='B'):
     if case == 'B':
-        kappa, sigma_s, g_hg, suffix = 0.5, 0.5, 0.0, 'CaseB'
+        kappa, sigma_s, g_hg, suffix = 0.5, 4.5, 0.0, 'CaseB'  # beta=5.0
     elif case == 'C':
-        kappa, sigma_s, g_hg, suffix = 0.1, 0.9, 0.6, 'CaseC'
+        kappa, sigma_s, g_hg, suffix = 0.5, 4.5, 0.8, 'CaseC'  # beta=5.0, strong forward
     else:
         raise ValueError(f"Unknown case: {case}")
     
