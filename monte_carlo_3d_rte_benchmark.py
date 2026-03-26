@@ -66,9 +66,10 @@ COS_ANGLE_TOL = 0.995    # ~5.7 degrees
 
 @njit(cache=True, fastmath=True)
 def source_term(x, y, z):
-    """Blackbody emission: Ib = max(0, 1.0 - 2.0 * d)"""
+    """Blackbody emission - concentrated: Ib = max(0, 1.0 - 5.0 * d)
+    Source concentrated in r<0.2 region for prominent scattering visualization"""
     d = np.sqrt((x-0.5)**2 + (y-0.5)**2 + (z-0.5)**2)
-    val = 1.0 - 2.0 * d
+    val = 1.0 - 5.0 * d  # Concentrated source
     return val if val > 0.0 else 0.0
 
 @njit(cache=True, fastmath=True)
@@ -304,16 +305,16 @@ def process_photon_batch(n_photons, kappa, sigma_s, beta, g_hg, nx, ny, nz,
 def run_monte_carlo(case='B'):
     """Run Monte Carlo simulation."""
     
-    # Set physical parameters
+    # Set physical parameters (Updated for dense medium beta=5.0)
     if case == 'B':
         kappa = 0.5
-        sigma_s = 0.5
+        sigma_s = 4.5  # beta = 5.0
         g_hg = 0.0
         suffix = 'CaseB'
     elif case == 'C':
-        kappa = 0.1
-        sigma_s = 0.9
-        g_hg = 0.6
+        kappa = 0.5
+        sigma_s = 4.5  # beta = 5.0
+        g_hg = 0.8     # strong forward scattering
         suffix = 'CaseC'
     else:
         raise ValueError(f"Unknown case: {case}")
