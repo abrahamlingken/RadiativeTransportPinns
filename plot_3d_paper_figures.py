@@ -154,6 +154,20 @@ def main():
     print(f"  Saved: {output_dir}/G_along_centerline.png")
     plt.close()
     
+    # Save 1D data to file
+    print(f"  Saving 1D centerline data...")
+    centerline_data = {}
+    centerline_data['x'] = x_1d.cpu().numpy()
+    for case_name, config in cases.items():
+        G = load_model_and_compute_G(
+            config['folder'], x_1d, y_1d, z_1d, engine
+        )
+        if G is not None:
+            case_key = case_name.replace(' ', '_').replace('(', '').replace(')', '')
+            centerline_data[f'G_{case_key}'] = G
+    np.savez(os.path.join(output_dir, 'G_centerline_data.npz'), **centerline_data)
+    print(f"  Saved: {output_dir}/G_centerline_data.npz")
+    
     # ========================================================================
     # 图2: 中心截面热图 (z=0.5)
     # ========================================================================
@@ -196,6 +210,24 @@ def main():
     plt.savefig(os.path.join(output_dir, 'G_center_slice.pdf'), bbox_inches='tight')
     print(f"  Saved: {output_dir}/G_center_slice.png")
     plt.close()
+    
+    # Save 2D slice data to file
+    print(f"  Saving 2D slice data...")
+    slice_data = {
+        'X': X_grid.cpu().numpy(),
+        'Y': Y_grid.cpu().numpy(),
+        'z_level': 0.5
+    }
+    for idx, (case_name, config) in enumerate(cases.items()):
+        G = load_model_and_compute_G(
+            config['folder'], x_flat, y_flat, z_flat, engine
+        )
+        if G is not None:
+            G_2d = G.reshape(n_grid, n_grid)
+            case_key = case_name.replace(' ', '_').replace('(', '').replace(')', '')
+            slice_data[f'G_{case_key}'] = G_2d
+    np.savez(os.path.join(output_dir, 'G_center_slice_data.npz'), **slice_data)
+    print(f"  Saved: {output_dir}/G_center_slice_data.npz")
     
     # ========================================================================
     # 图3: 3D 体渲染数据导出 (VTK格式，用于ParaView)
