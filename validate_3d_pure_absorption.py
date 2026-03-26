@@ -186,7 +186,7 @@ def plot_G_comparison(model_path="Results_3D_CaseA/model.pkl"):
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     engine = RadTrans3D_Physics(
-        kappa_val=1.0, sigma_s_val=0.0, g_val=0.0,
+        kappa_val=5.0, sigma_s_val=0.0, g_val=0.0,
         n_theta=8, n_phi=16, dev=device
     )
     
@@ -251,6 +251,19 @@ def plot_G_comparison(model_path="Results_3D_CaseA/model.pkl"):
     plt.savefig(os.path.join(output_dir, 'G_CaseA_Centerline_HighPrecision.pdf'))
     print(f"  Saved: {output_dir}/G_CaseA_Centerline_HighPrecision.png")
     plt.close()
+    
+    # Save 1D validation data
+    validation_1d = {
+        'x': x_line,
+        'G_exact': G_exact_line,
+        'G_pinn': G_pinn_line,
+        'error': error_line,
+        'rel_error': rel_error,
+        'kappa': KAPPA,
+        'case': '3D_A_PureAbsorption'
+    }
+    np.savez(os.path.join(output_dir, 'G_CaseA_Centerline_Data.npz'), **validation_1d)
+    print(f"  Saved: {output_dir}/G_CaseA_Centerline_Data.npz")
     
     # ==========================================
     # 图2: 2D 中心截面 (z=0.5) 对比 - 风格与 plot_3d_paper_figures 热图一致
@@ -323,6 +336,20 @@ def plot_G_comparison(model_path="Results_3D_CaseA/model.pkl"):
     plt.savefig(os.path.join(output_dir, 'G_CaseA_2D_HighPrecision.pdf'), bbox_inches='tight')
     print(f"  Saved: {output_dir}/G_CaseA_2D_HighPrecision.png")
     plt.close()
+    
+    # Save 2D validation data
+    validation_2d = {
+        'X': X_grid,
+        'Y': Y_grid,
+        'Z': Z_grid,
+        'G_exact': G_exact_2d,
+        'G_pinn': G_pinn_2d,
+        'Error': Error_2d,
+        'kappa': KAPPA,
+        'case': '3D_A_PureAbsorption'
+    }
+    np.savez(os.path.join(output_dir, 'G_CaseA_2D_Data.npz'), **validation_2d)
+    print(f"  Saved: {output_dir}/G_CaseA_2D_Data.npz")
     
     print(f"\n  2D Error Statistics:")
     print(f"  Max Error: {Error_2d.max():.4e}")
