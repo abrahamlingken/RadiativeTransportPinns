@@ -187,14 +187,25 @@ def train_single_case(case_key, chunk_size=4096):
     # ========================================================================
     print("\n[4] Configuring optimizer...")
     
+    # Case C使用更宽松的收敛条件（高散射问题更难收敛）
+    if case_key == '3D_C':
+        lr = 0.25  # 降低学习率
+        tol_grad = 1e-8  # 更宽松的梯度容忍度
+        tol_change = 1e-10
+        print("  [Case C] Using adjusted LBFGS parameters for high-scattering regime")
+    else:
+        lr = 0.5
+        tol_grad = 1e-7
+        tol_change = 1e-9
+    
     optimizer = optim.LBFGS(
         model.parameters(),
-        lr=0.5,
-        max_iter=50000,
-        max_eval=50000,
-        tolerance_grad=1e-7,
-        tolerance_change=1e-9,
-        history_size=100,
+        lr=lr,
+        max_iter=100000,  # 增加最大迭代
+        max_eval=100000,
+        tolerance_grad=tol_grad,
+        tolerance_change=tol_change,
+        history_size=150,
         line_search_fn="strong_wolfe"
     )
     

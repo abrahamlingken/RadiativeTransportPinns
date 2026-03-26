@@ -1,5 +1,12 @@
 #!/usr/bin/env python
-"""Monte Carlo 3D RTE Benchmark Solver v2 - Physically Correct"""
+"""Monte Carlo 3D RTE Benchmark Solver v2 - Physically Correct
+
+NOTE: Source term decoupled from kappa (Mathematical formulation for rigorous scattering benchmark)
+New equation: s·∇I + (κ+σs)I = Ib + (σs/4π)∫ΦI dΩ'
+[Old: s·∇I + (κ+σs)I = κ·Ib + (σs/4π)∫ΦI dΩ']
+
+This ensures Case C (κ=0.1, σs=0.9) has sufficient energy to test scattering integrals.
+"""
 
 import numpy as np
 from numba import njit, prange
@@ -138,14 +145,18 @@ def track_photon_collision(kappa, sigma_s, beta, g_hg, nx, ny, nz, dx, dy, dz):
         iz_arr[n_coll] = iz
         
         if np.random.random() < (kappa / beta):
-            # Absorption - contributes to G with weight 1/kappa
-            weight_arr[n_coll] = 1.0 / kappa if kappa > 1e-15 else 0.0
+            # Absorption - contributes to G with weight 1 (source decoupled from kappa)
+            # NOTE: Old weight was 1/kappa when source was kappa*Ib
+            # New weight is 1 when source is Ib (decoupled formulation)
+            weight_arr[n_coll] = 1.0
             is_scatter[n_coll] = 0
             n_coll += 1
             break  # Photon terminates
         else:
-            # Scattering - contributes to G with weight 1/sigma_s
-            weight_arr[n_coll] = 1.0 / sigma_s if sigma_s > 1e-15 else 0.0
+            # Scattering - contributes to G with weight 1
+            # NOTE: Old weight was 1/sigma_s when source was kappa*Ib
+            # New weight is 1 when source is Ib (decoupled formulation)
+            weight_arr[n_coll] = 1.0
             is_scatter[n_coll] = 1
             n_coll += 1
             sx, sy, sz = sample_hg_direction(sx, sy, sz, g_hg)

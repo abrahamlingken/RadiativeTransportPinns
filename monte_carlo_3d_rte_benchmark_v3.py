@@ -1,5 +1,9 @@
 #!/usr/bin/env python
-"""Monte Carlo 3D RTE Benchmark Solver v3 - Consistent with PINN"""
+"""Monte Carlo 3D RTE Benchmark Solver v3 - Consistent with PINN
+
+NOTE: Source term decoupled from kappa (Mathematical formulation)
+New equation: s·∇I + (κ+σs)I = Ib + (σs/4π)∫ΦI dΩ'
+"""
 
 import numpy as np
 from numba import njit, prange

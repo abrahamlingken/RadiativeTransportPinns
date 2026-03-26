@@ -3,6 +3,10 @@
 """
 validate_3d_pure_absorption.py - 3D纯吸收案例验证
 
+NOTE: Source term decoupled from kappa (Mathematical formulation)
+New analytical formula: I = ∫ S·exp(-κ·l) dl [old: ∫ κ·S·exp(-κ·l) dl]
+where S = Ib(r) = max(0, 1 - 2r)
+
 绘图风格与 plot_3d_paper_figures.py 保持一致
 """
 
@@ -94,7 +98,9 @@ def compute_exact_intensity_single(x, y, z, theta, phi, num_points=300):
     for i in range(num_points):
         curr_pos = pos - l_vals[i] * s_vec
         S_val = source_term(curr_pos[0], curr_pos[1], curr_pos[2])
-        integrand[i] = KAPPA * S_val * np.exp(-KAPPA * l_vals[i])
+        # NOTE: Source term decoupled from kappa
+        # New integrand: S * exp(-kappa * l) [old: kappa * S * exp(-kappa * l)]
+        integrand[i] = S_val * np.exp(-KAPPA * l_vals[i])
     
     intensity = np.sum(integrand * weights)
     return max(0.0, intensity)

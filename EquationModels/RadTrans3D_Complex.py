@@ -30,6 +30,10 @@ class RadTrans3D_Physics:
         n_theta: 极角方向求积点数
         n_phi: 方位角方向求积点数
         dev: 计算设备（torch.device）
+    
+    NOTE: Source term decoupled from kappa for rigorous scattering benchmark
+    Equation: s·∇I + (κ+σs)I = Ib + (σs/4π)∫ΦI dΩ'  [Source: Ib, NOT κ·Ib]
+    This ensures sufficient energy in high-scattering cases (e.g., Case C).
     """
     
     def __init__(self, kappa_val=0.5, sigma_s_val=0.5, g_val=0.0, 
@@ -277,8 +281,10 @@ class RadTrans3D_Physics:
         scatter_val = self.compute_scattering_3d(x, y, z, theta, phi, network)
         
         # 组装残差
+        # NOTE: Source term decoupled from kappa for rigorous scattering benchmark
+        # New equation: s·∇I + (κ+σs)I = Ib + (σs/4π)∫ΦI dΩ'
         lhs = s_dot_grad_u + (kappa_val + sigma_val) * u
-        rhs = (sigma_val / (4.0 * pi)) * scatter_val + kappa_val * I_b_val
+        rhs = (sigma_val / (4.0 * pi)) * scatter_val + I_b_val  # Changed: kappa_val * I_b_val -> I_b_val
         residual = lhs - rhs
         
         return residual
