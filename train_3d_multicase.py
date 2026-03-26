@@ -79,7 +79,62 @@ CASE_CONFIGS = {
 # 训练函数
 # ========================================================================
 
-def train_single_case(case_key, chunk_size=4096):
+def curriculum_training_stage(model, physics_base, kappa_values, iterations_per_stage, 
+                               x_coll, x_b, y_b, chunk_size, device):
+    """
+    课程学习：逐步增加kappa难度
+    """
+    from EquationModels.RadTrans3D_Complex import RadTrans3D_Physics
+    
+    print("\n  [Curriculum Training] Starting progressive kappa training...")
+    
+    for stage, kappa in enumerate(kappa_values):
+        print(f"\n  Stage {stage+1}/{len(kappa_values)}: Training with kappa={kappa}")
+        
+        # 创建当前阶段的物理引擎
+        physics_stage = RadTrans3D_Physics(
+            kappa_val=kappa,
+            sigma_s_val=physics_base.sigma_s_val,
+            g_val=physics_base.g_val,
+            n_theta=physics_base.n_theta,
+            n_phi=physics_base.n_phi,
+            dev=device
+        )
+        
+        # 简单的Adam优化阶段
+        optimizer = optim.Adam(model.parameters(), lr=1e-3 * (0.8 ** stage))
+        
+        for it in range(iterations_per_stage):
+            optimizer.zero_grad()
+            
+            # 边界损失
+            u_pred_b, u_train_b = physics_stage.apply_bc(x_b, y_b, model)
+            if u_pred_b.numel() > 0:
+                loss_b = torch.mean((u_pred_b - u_train_b)**2)
+                loss_b.backward()
+            
+            # 残差损失（分块）
+            N_coll = x_coll.shape[0]
+            n_chunks = (N_coll + chunk_size - 1) // chunk_size
+            for i in range(n_chunks):
+                start_idx = i * chunk_size
+                end_idx = min((i + 1) * chunk_size, N_coll)
+                x_chunk = x_coll[start_idx:end_idx]
+                res_chunk = physics_stage.compute_res(model, x_chunk)
+                weight = (end_idx - start_idx) / N_coll
+                loss_chunk = 0.01 * torch.mean(res_chunk**2) * weight
+                loss_chunk.backward()
+                del res_chunk, loss_chunk, x_chunk
+            
+            optimizer.step()
+            
+            if it % 200 == 0:
+                print(f"    Iter {it}/{iterations_per_stage} completed")
+    
+    print("  Curriculum training completed!")
+
+
+def train_single_case(case_key, chunk_size=4096, use_curriculum=False):
     """
     训练单个3D案例
     
@@ -87,6 +142,9 @@ def train_single_case(case_key, chunk_size=4096):
     - 使用物理引擎实例化，无全局状态
     - 真正的梯度累加：每个chunk立即backward，不保留计算图
     - 无empty_cache()拖慢
+    
+    Args:
+        use_curriculum: 是否使用课程学习（渐进增加kappa）
     """
     from EquationModels.RadTrans3D_Complex import RadTrans3D_Physics
     
@@ -151,16 +209,31 @@ def train_single_case(case_key, chunk_size=4096):
     # ========================================================================
     print("\n[3] Creating neural network...")
     
-    NETWORK_PROPERTIES = {
-        "hidden_layers": 8,
-        "neurons": 128,
-        "residual_parameter": 0.1,
-        "kernel_regularizer": 2,
-        "regularization_parameter": 0,
-        "batch_size": N_COLL + N_U,
-        "epochs": 1,
-        "activation": "tanh"
-    }
+    # 优化网络配置：针对高kappa问题的锐利梯度
+    if config['kappa'] >= 5.0:
+        # 高衰减问题需要更深更宽的网络
+        print("  [High kappa detected] Using enhanced network architecture")
+        NETWORK_PROPERTIES = {
+            "hidden_layers": 10,        # 更深的网络
+            "neurons": 256,             # 更宽的网络
+            "residual_parameter": 0.01,  # 降低残差权重，增加边界权重
+            "kernel_regularizer": 2,
+            "regularization_parameter": 0,
+            "batch_size": N_COLL + N_U,
+            "epochs": 1,
+            "activation": "swish"       # Swish更适合陡峭梯度
+        }
+    else:
+        NETWORK_PROPERTIES = {
+            "hidden_layers": 8,
+            "neurons": 128,
+            "residual_parameter": 0.1,
+            "kernel_regularizer": 2,
+            "regularization_parameter": 0,
+            "batch_size": N_COLL + N_U,
+            "epochs": 1,
+            "activation": "tanh"
+        }
     
     input_dims = 5  # x, y, z, theta, phi
     output_dims = 1
@@ -181,6 +254,21 @@ def train_single_case(case_key, chunk_size=4096):
         print("  Using CPU")
     
     print(f"  Parameters: {sum(p.numel() for p in model.parameters())}")
+    
+    # =======================================================================
+    # 步骤3.5：课程学习预热（高kappa问题）
+    # =======================================================================
+    if use_curriculum and config['kappa'] >= 5.0:
+        print("\n[3.5] Curriculum learning pre-training...")
+        # 渐进增加kappa: 1.0 -> 2.0 -> 3.0 -> 5.0
+        kappa_stages = [1.0, 2.0, 3.0, config['kappa']]
+        curriculum_training_stage(
+            model, physics, kappa_stages, 
+            iterations_per_stage=500,  # 每个阶段500轮
+            x_coll=x_coll, x_b=x_b, y_b=y_b,
+            chunk_size=chunk_size, device=device
+        )
+        print("  Curriculum pre-training completed!")
     
     # ========================================================================
     # 步骤4：配置优化器
@@ -225,13 +313,21 @@ def train_single_case(case_key, chunk_size=4096):
         optimizer.zero_grad()
         total_loss = 0.0
         
-        # ========== 1. 计算边界损失 (立即反向传播释放显存) ==========
+        # ========== 1. 计算边界损失 (高kappa问题需要更强的边界约束) ==========
         u_pred_b, u_train_b = physics.apply_bc(x_b, y_b, model)
         if u_pred_b.numel() > 0:
             loss_b = torch.mean((u_pred_b - u_train_b)**2)
-            loss_b.backward()  # 立即反向传播，将梯度累加到叶子节点，并释放计算图
-            total_loss += loss_b.item()
-            del u_pred_b, u_train_b, loss_b
+            
+            # 自适应边界权重：高kappa问题边界更重要
+            if config['kappa'] >= 5.0:
+                lambda_bc = 10.0 + min(iteration / 500, 10.0)  # 10-20动态增加
+            else:
+                lambda_bc = 1.0
+            
+            loss_b_weighted = lambda_bc * loss_b
+            loss_b_weighted.backward()  # 立即反向传播
+            total_loss += loss_b.item()  # 记录原始损失
+            del u_pred_b, u_train_b, loss_b, loss_b_weighted
             
         # ========== 2. 计算残差损失 (真正的 Chunking 梯度累加) ==========
         N_coll = x_coll.shape[0]
@@ -381,6 +477,8 @@ def main():
                        help='Which case to run (default: all)')
     parser.add_argument('--chunk-size', type=int, default=4096,
                        help='Chunk size for gradient accumulation (default: 4096)')
+    parser.add_argument('--curriculum', action='store_true',
+                       help='Use curriculum learning for high-kappa cases')
     
     args = parser.parse_args()
     
@@ -390,6 +488,7 @@ def main():
     print(f"Project Root: {PROJECT_ROOT}")
     print(f"Chunk Size: {args.chunk_size}")
     print(f"Cases: {args.case}")
+    print(f"Curriculum Learning: {'Enabled' if args.curriculum else 'Disabled'}")
     
     # 确定运行的案例
     if args.case == 'all':
@@ -401,7 +500,8 @@ def main():
     results = []
     for case_key in cases:
         try:
-            result = train_single_case(case_key, chunk_size=args.chunk_size)
+            result = train_single_case(case_key, chunk_size=args.chunk_size, 
+                                       use_curriculum=args.curriculum)
             results.append(result)
         except Exception as e:
             print(f"\n[ERROR] Case {case_key} failed: {e}")
