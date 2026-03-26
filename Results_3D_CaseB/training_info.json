@@ -1,8 +1,8 @@
 {
   "case": "3D_B",
-  "final_loss": 1.1409198350520455e-05,
-  "iterations": 2513,
-  "training_time": 475.53088641166687,
+  "final_loss": 2.9361312044784427e-05,
+  "iterations": 6204,
+  "training_time": 1230.9173049926758,
   "chunk_size": 4096,
   "device": "cuda",
   "n_collocation": 16384,

@@ -1,6 +1,6 @@
 {
   "case": "3D_A",
-  "kappa": 1.0,
+  "kappa": 5.0,
   "sigma_s": 0.0,
   "g": 0.0,
   "chunk_size": 4096

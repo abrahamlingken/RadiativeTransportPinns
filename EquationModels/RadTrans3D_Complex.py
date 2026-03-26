@@ -127,12 +127,14 @@ class RadTrans3D_Physics:
     
     def I_b(self, x, y, z):
         """
-        黑体辐射源项
-        默认实现：中心球形热源
+        黑体辐射源项 - 高度局部化用于散射测试
+        
+        球形分布: max(0, 1 - 5*r)，仅在r<0.2区域有源
+        创建厚冷区(0.2<r<0.5)用于显著测试散射效应
         """
         x0, y0, z0 = 0.5, 0.5, 0.5
         r = torch.sqrt((x - x0)**2 + (y - y0)**2 + (z - z0)**2)
-        return torch.clamp(1.0 - 2.0 * r, min=0.0)
+        return torch.clamp(1.0 - 5.0 * r, min=0.0)
     
     def kernel_HG_3d(self, s, s_prime):
         """

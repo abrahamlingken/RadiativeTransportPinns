@@ -48,13 +48,13 @@ from EquationModels.RadTrans3D_Complex import RadTrans3D_Physics
 # ==========================================
 # 物理参数
 # ==========================================
-KAPPA = 1.0
+KAPPA = 5.0
 CENTER = np.array([0.5, 0.5, 0.5])
 
 def source_term(x, y, z):
-    """球形热源: max(0, 1.0 - 2.0*r)"""
+    """球形热源 - 高度局部化: max(0, 1.0 - 5.0*r)，仅在r<0.2有源"""
     r = np.sqrt((x - CENTER[0])**2 + (y - CENTER[1])**2 + (z - CENTER[2])**2)
-    return np.maximum(0.0, 1.0 - 2.0 * r)
+    return np.maximum(0.0, 1.0 - 5.0 * r)
 
 def compute_exact_intensity_single(x, y, z, theta, phi, num_points=300):
     """计算单一方向 (theta, phi) 的精确强度 I(x,y,z,theta,phi)"""

@@ -50,26 +50,26 @@ from ModelClassTorch2 import Pinns, init_xavier
 CASE_CONFIGS = {
     '3D_A': {
         'name': 'Case3D_A_PureAbsorption',
-        'description': 'Pure absorption (kappa=1.0, sigma_s=0.0, g=0.0)',
-        'kappa': 1.0,
+        'description': 'Pure absorption (kappa=5.0, sigma_s=0.0, g=0.0), beta=5.0',
+        'kappa': 5.0,
         'sigma_s': 0.0,
         'g': 0.0,
         'folder': 'Results_3D_CaseA'
     },
     '3D_B': {
         'name': 'Case3D_B_Isotropic',
-        'description': 'Isotropic scattering (kappa=0.5, sigma_s=0.5, g=0.0)',
+        'description': 'Isotropic scattering (kappa=0.5, sigma_s=4.5, g=0.0), beta=5.0',
         'kappa': 0.5,
-        'sigma_s': 0.5,
+        'sigma_s': 4.5,
         'g': 0.0,
         'folder': 'Results_3D_CaseB'
     },
     '3D_C': {
         'name': 'Case3D_C_ForwardScattering',
-        'description': 'Forward scattering (kappa=0.1, sigma_s=0.9, g=0.6)',
-        'kappa': 0.1,
-        'sigma_s': 0.9,
-        'g': 0.6,
+        'description': 'Forward scattering (kappa=0.5, sigma_s=4.5, g=0.8), beta=5.0',
+        'kappa': 0.5,
+        'sigma_s': 4.5,
+        'g': 0.8,
         'folder': 'Results_3D_CaseC'
     }
 }
