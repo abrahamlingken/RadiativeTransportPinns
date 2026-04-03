@@ -8,7 +8,8 @@ evaluate_anisotropic.py - 各向异性散射 PINN vs DOM 综合评估脚本
     - Case F: g = 0.8 (强前向散射)
 
 输出：
-    - Anisotropic_CaseD_Eval.png 等 (1x3 组合图)
+    - Anisotropic_CaseD_Eval.png 等 (组合图)
+    - Anisotropic_CaseD_G_comparison.png 等 (单独的G(x)对比图)
     - evaluation_anisotropic_summary.txt (误差统计)
 """
 
@@ -23,18 +24,16 @@ from scipy.special import roots_legendre
 import torch
 
 # ==============================================================================
-# 学术级绘图设置 (400 DPI, Serif 字体, LaTeX 标签)
+# 绘图设置 (与 evaluate_pinn_vs_exact.py 保持一致)
 # ==============================================================================
-rcParams['text.usetex'] = True  # 启用 LaTeX
+rcParams['text.usetex'] = False
 rcParams['font.family'] = 'serif'
-rcParams['font.serif'] = ['Times New Roman', 'DejaVu Serif', 'Computer Modern']
-rcParams['font.size'] = 11
-rcParams['axes.labelsize'] = 12
-rcParams['axes.titlesize'] = 13
-rcParams['legend.fontsize'] = 10
-rcParams['xtick.labelsize'] = 10
-rcParams['ytick.labelsize'] = 10
-rcParams['figure.dpi'] = 400
+rcParams['font.size'] = 12
+rcParams['axes.labelsize'] = 13
+rcParams['axes.titlesize'] = 14
+rcParams['legend.fontsize'] = 11
+rcParams['xtick.labelsize'] = 11
+rcParams['ytick.labelsize'] = 11
 
 # 添加项目根目录和 Core 目录到路径
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -51,7 +50,7 @@ if CORE_PATH not in sys.path:
 ANISOTROPIC_CASE_CONFIGS = {
     'D': {
         'name': 'CaseD_Forward',
-        'description': r'Forward Scattering ($g = 0.5$)',
+        'description': r'Forward Scattering (g = 0.5)',
         'g': 0.5,
         'kappa': 0.5,
         'sigma_s': 0.5,
@@ -60,7 +59,7 @@ ANISOTROPIC_CASE_CONFIGS = {
     },
     'E': {
         'name': 'CaseE_Backward',
-        'description': r'Backward Scattering ($g = -0.5$)',
+        'description': r'Backward Scattering (g = -0.5)',
         'g': -0.5,
         'kappa': 0.5,
         'sigma_s': 0.5,
@@ -69,7 +68,7 @@ ANISOTROPIC_CASE_CONFIGS = {
     },
     'F': {
         'name': 'CaseF_StrongForward',
-        'description': r'Strong Forward Scattering ($g = 0.8$)',
+        'description': r'Strong Forward Scattering (g = 0.8)',
         'g': 0.8,
         'kappa': 0.5,
         'sigma_s': 0.5,
@@ -196,120 +195,109 @@ def compute_error_metrics(u_dom, u_pinn):
 
 
 # ==============================================================================
-# 4. 学术级绘图函数 (2x2 组合图，避免拥挤)
+# 4. 绘图函数 (与 evaluate_pinn_vs_exact.py 风格一致)
 # ==============================================================================
-def plot_comparison_2x2(case_key, x, mu, u_dom, u_pinn, G_dom, G_pinn,
-                        rel_l2, output_dir='Evaluation_Results_Anisotropic'):
+def plot_comparison(case_key, x, mu, u_dom, u_pinn, G_dom, G_pinn,
+                    rel_l2, output_dir='Evaluation_Results_Anisotropic'):
     """
-    生成 2x2 组合评估图
+    生成对比图 (与 evaluate_pinn_vs_exact.py 风格一致)
     
-    子图布局:
-        [左上] (a) DOM 解 I_dom(x, mu)
-        [右上] (b) PINN 解 I_pinn(x, mu)
-        [左下] (c) 绝对误差场 |u_pinn - u_dom|
-        [右下] (d) G(x) 对比曲线
+    子图布局 (3行2列):
+        [左上] (a) DOM 解
+        [右上] (b) PINN 解
+        [中, 跨两列] (c) 绝对误差场
+        [下, 跨两列] (d) G(x) 对比曲线
     """
     config = ANISOTROPIC_CASE_CONFIGS[case_key]
     os.makedirs(output_dir, exist_ok=True)
     
     X, Mu = np.meshgrid(x, mu)
-    error = np.abs(u_pinn - u_dom)
     
     # 统一色标范围
     vmin, vmax = 0, max(np.max(u_dom), np.max(u_pinn)) * 1.05
     
-    # 创建图形 (2行2列)
-    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    # 创建图形 (3行2列，与 evaluate_pinn_vs_exact.py 一致)
+    fig = plt.figure(figsize=(14, 16))
     
     # -------------------------------------------------------------------------
     # 子图 (a): DOM 解
     # -------------------------------------------------------------------------
-    ax_a = axes[0, 0]
-    im_dom = ax_a.contourf(X, Mu, u_dom, levels=20, cmap='jet',
-                           vmin=vmin, vmax=vmax, extend='both')
-    ax_a.set_xlabel(r'$x$', fontsize=12)
-    ax_a.set_ylabel(r'$\mu = \cos(\theta)$', fontsize=12)
-    ax_a.set_title(r'(a) DOM: $I_{\mathrm{dom}}(x, \mu)$', fontsize=12, pad=5)
-    ax_a.axhline(y=0, color='white', linestyle='--', linewidth=0.8, alpha=0.7)
-    ax_a.set_xticks(np.linspace(0, 1, 5))
-    ax_a.set_yticks([-1, -0.5, 0, 0.5, 1])
-    
-    # colorbar
-    cbar_a = plt.colorbar(im_dom, ax=ax_a, pad=0.02)
-    cbar_a.set_label(r'$I(x, \mu)$', fontsize=10, rotation=270, labelpad=15)
+    ax1 = plt.subplot(3, 2, 1)
+    im1 = ax1.contourf(X, Mu, u_dom, levels=20, cmap='jet',
+                       vmin=vmin, vmax=vmax, extend='both')
+    ax1.set_xlabel('x', fontsize=13)
+    ax1.set_ylabel('mu', fontsize=13)
+    ax1.set_title('(a) DOM Solution', fontsize=13)
+    ax1.axhline(y=0, color='white', linestyle='--', linewidth=1, alpha=0.7)
+    plt.colorbar(im1, ax=ax1, label='I')
     
     # -------------------------------------------------------------------------
     # 子图 (b): PINN 解
     # -------------------------------------------------------------------------
-    ax_b = axes[0, 1]
-    im_pinn = ax_b.contourf(X, Mu, u_pinn, levels=20, cmap='jet',
-                            vmin=vmin, vmax=vmax, extend='both')
-    ax_b.set_xlabel(r'$x$', fontsize=12)
-    ax_b.set_ylabel(r'$\mu = \cos(\theta)$', fontsize=12)
-    ax_b.set_title(r'(b) PINN: $I_{\mathrm{pinn}}(x, \mu)$', fontsize=12, pad=5)
-    ax_b.axhline(y=0, color='white', linestyle='--', linewidth=0.8, alpha=0.7)
-    ax_b.set_xticks(np.linspace(0, 1, 5))
-    ax_b.set_yticks([-1, -0.5, 0, 0.5, 1])
-    
-    # colorbar (共享色标，但单独显示)
-    cbar_b = plt.colorbar(im_pinn, ax=ax_b, pad=0.02)
-    cbar_b.set_label(r'$I(x, \mu)$', fontsize=10, rotation=270, labelpad=15)
+    ax2 = plt.subplot(3, 2, 2)
+    im2 = ax2.contourf(X, Mu, u_pinn, levels=20, cmap='jet',
+                       vmin=vmin, vmax=vmax, extend='both')
+    ax2.set_xlabel('x', fontsize=13)
+    ax2.set_ylabel('mu', fontsize=13)
+    ax2.set_title('(b) PINN: I_pinn(x, mu)', fontsize=13)
+    ax2.axhline(y=0, color='white', linestyle='--', linewidth=1, alpha=0.7)
+    plt.colorbar(im2, ax=ax2, label='I')
     
     # -------------------------------------------------------------------------
-    # 子图 (c): 绝对误差场
+    # 子图 (c): 绝对误差场 (跨两列)
     # -------------------------------------------------------------------------
-    ax_c = axes[1, 0]
-    im_err = ax_c.contourf(X, Mu, error, levels=20, cmap='coolwarm', extend='max')
-    ax_c.set_xlabel(r'$x$', fontsize=12)
-    ax_c.set_ylabel(r'$\mu = \cos(\theta)$', fontsize=12)
-    ax_c.set_title(r'(c) Absolute Error: $|I_{\mathrm{pinn}} - I_{\mathrm{dom}}|$' + 
-                   f' (Rel. L$_2$ = {rel_l2:.4f})', fontsize=12, pad=5)
-    ax_c.axhline(y=0, color='gray', linestyle='--', linewidth=0.8, alpha=0.5)
-    ax_c.set_xticks(np.linspace(0, 1, 5))
-    ax_c.set_yticks([-1, -0.5, 0, 0.5, 1])
-    
-    # colorbar
-    cbar_c = plt.colorbar(im_err, ax=ax_c, pad=0.02)
-    cbar_c.set_label(r'$|\Delta I|$', fontsize=10, rotation=270, labelpad=15)
+    ax3 = plt.subplot(3, 1, 2)
+    error = np.abs(u_pinn - u_dom)
+    im3 = ax3.contourf(X, Mu, error, levels=20, cmap='Reds', extend='max')
+    ax3.set_xlabel('x', fontsize=13)
+    ax3.set_ylabel('mu', fontsize=13)
+    ax3.set_title(f'(c) Absolute Error: |I_pinn - I_dom| (Rel. L2 = {rel_l2:.4f})',
+                  fontsize=13)
+    ax3.axhline(y=0, color='gray', linestyle='--', linewidth=1, alpha=0.5)
+    cbar = plt.colorbar(im3, ax=ax3)
+    cbar.set_label('|I_pinn - I_dom|', fontsize=12)
     
     # -------------------------------------------------------------------------
-    # 子图 (d): G(x) 对比
+    # 子图 (d): G(x) 对比 (跨两列)
     # -------------------------------------------------------------------------
-    ax_d = axes[1, 1]
+    ax4 = plt.subplot(3, 1, 3)
+    ax4.plot(x, G_dom, 'k-', linewidth=2.5, label='DOM (Ground Truth)')
+    ax4.plot(x, G_pinn, 'r--', linewidth=2.0, marker='o', markersize=4,
+             markevery=10, label='PINN Prediction')
+    ax4.set_xlabel('x', fontsize=13)
+    ax4.set_ylabel('G(x) = integral I(x, mu) dmu', fontsize=13)
+    ax4.set_title(f'(d) Incident Radiation: {config["description"]}', fontsize=13)
+    ax4.legend(loc='best', framealpha=0.9)
+    ax4.grid(True, linestyle='--', alpha=0.5)
+    ax4.set_xlim([0, 1])
+    ax4.set_ylim([0, max(np.max(G_dom), np.max(G_pinn)) * 1.1])
     
-    # DOM (黑色实线)
-    ax_d.plot(x, G_dom, 'k-', linewidth=2.5, label=r'DOM (Ground Truth)')
-    
-    # PINN (红色散点)
-    ax_d.scatter(x[::5], G_pinn[::5], c='red', s=40, marker='o',
-                label=r'PINN Prediction', zorder=5)
-    
-    ax_d.set_xlabel(r'$x$', fontsize=12)
-    ax_d.set_ylabel(r'$G(x) = \int_{-1}^{1} I(x, \mu) \, \mathrm{d}\mu$', fontsize=12)
-    ax_d.set_title(r'(d) Incident Radiation $G(x)$ Comparison', fontsize=12, pad=5)
-    ax_d.legend(loc='best', framealpha=0.95, edgecolor='gray')
-    ax_d.grid(True, linestyle='--', alpha=0.4)
-    ax_d.set_xlim([0, 1])
-    ax_d.set_xticks(np.linspace(0, 1, 5))
-    
-    G_max = max(np.max(G_dom), np.max(G_pinn))
-    ax_d.set_ylim([0, G_max * 1.15])
-    
-    # 添加案例信息文本
-    textstr = config['description']
-    ax_d.text(0.98, 0.97, textstr, transform=ax_d.transAxes,
-             fontsize=11, verticalalignment='top', horizontalalignment='right',
-             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3, edgecolor='gray'))
-    
-    # 调整布局
     plt.tight_layout()
-    plt.subplots_adjust(hspace=0.35, wspace=0.3)
     
-    # 保存图片
-    output_path = os.path.join(output_dir, f'Anisotropic_Case{case_key}_Eval.png')
+    # 保存完整对比图
+    output_path = os.path.join(output_dir, f'Anisotropic_Case{case_key}_comparison.png')
     plt.savefig(output_path, dpi=400, bbox_inches='tight', facecolor='white')
     print(f"  Saved: {output_path}")
     plt.close(fig)
+    
+    # -------------------------------------------------------------------------
+    # 单独保存 G(x) 对比图 (与 evaluate_pinn_vs_exact.py 一致)
+    # -------------------------------------------------------------------------
+    fig_G, ax_G = plt.subplots(figsize=(8, 5))
+    ax_G.plot(x, G_dom, 'k-', linewidth=2.5, label='DOM (Ground Truth)')
+    ax_G.plot(x, G_pinn, 'r--', linewidth=2.0, marker='o', markersize=5,
+              markevery=10, label='PINN Prediction')
+    ax_G.set_xlabel('x', fontsize=14)
+    ax_G.set_ylabel('G(x)', fontsize=14)
+    ax_G.set_title(f'Anisotropic {case_key}: {config["description"]}', fontsize=14)
+    ax_G.legend(loc='best', framealpha=0.9)
+    ax_G.grid(True, linestyle='--', alpha=0.5)
+    plt.tight_layout()
+    
+    output_G = os.path.join(output_dir, f'Anisotropic_Case{case_key}_G_comparison.png')
+    plt.savefig(output_G, dpi=400, bbox_inches='tight', facecolor='white')
+    print(f"  Saved: {output_G}")
+    plt.close(fig_G)
 
 
 # ==============================================================================
@@ -353,10 +341,10 @@ def evaluate_case(case_key, output_dir='Evaluation_Results_Anisotropic'):
     G_rel_err = np.linalg.norm(G_pinn - G_dom) / np.linalg.norm(G_dom)
     print(f"    G(x) Relative Error: {G_rel_err:.6f}")
     
-    # 4. 生成 2x2 组合图
-    print(f"\n[4] Generating 2x2 comparison plot...")
-    plot_comparison_2x2(case_key, x, mu, u_dom, u_pinn, G_dom, G_pinn,
-                        rel_l2, output_dir)
+    # 4. 生成对比图
+    print(f"\n[4] Generating comparison plots...")
+    plot_comparison(case_key, x, mu, u_dom, u_pinn, G_dom, G_pinn,
+                    rel_l2, output_dir)
     
     return {
         'case': case_key,

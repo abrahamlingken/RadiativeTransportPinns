@@ -79,62 +79,7 @@ CASE_CONFIGS = {
 # 训练函数
 # ========================================================================
 
-def curriculum_training_stage(model, physics_base, kappa_values, iterations_per_stage, 
-                               x_coll, x_b, y_b, chunk_size, device):
-    """
-    课程学习：逐步增加kappa难度
-    """
-    from EquationModels.RadTrans3D_Complex import RadTrans3D_Physics
-    
-    print("\n  [Curriculum Training] Starting progressive kappa training...")
-    
-    for stage, kappa in enumerate(kappa_values):
-        print(f"\n  Stage {stage+1}/{len(kappa_values)}: Training with kappa={kappa}")
-        
-        # 创建当前阶段的物理引擎
-        physics_stage = RadTrans3D_Physics(
-            kappa_val=kappa,
-            sigma_s_val=physics_base.sigma_s_val,
-            g_val=physics_base.g_val,
-            n_theta=physics_base.n_theta,
-            n_phi=physics_base.n_phi,
-            dev=device
-        )
-        
-        # 简单的Adam优化阶段
-        optimizer = optim.Adam(model.parameters(), lr=1e-3 * (0.8 ** stage))
-        
-        for it in range(iterations_per_stage):
-            optimizer.zero_grad()
-            
-            # 边界损失
-            u_pred_b, u_train_b = physics_stage.apply_bc(x_b, y_b, model)
-            if u_pred_b.numel() > 0:
-                loss_b = torch.mean((u_pred_b - u_train_b)**2)
-                loss_b.backward()
-            
-            # 残差损失（分块）
-            N_coll = x_coll.shape[0]
-            n_chunks = (N_coll + chunk_size - 1) // chunk_size
-            for i in range(n_chunks):
-                start_idx = i * chunk_size
-                end_idx = min((i + 1) * chunk_size, N_coll)
-                x_chunk = x_coll[start_idx:end_idx]
-                res_chunk = physics_stage.compute_res(model, x_chunk)
-                weight = (end_idx - start_idx) / N_coll
-                loss_chunk = 0.01 * torch.mean(res_chunk**2) * weight
-                loss_chunk.backward()
-                del res_chunk, loss_chunk, x_chunk
-            
-            optimizer.step()
-            
-            if it % 200 == 0:
-                print(f"    Iter {it}/{iterations_per_stage} completed")
-    
-    print("  Curriculum training completed!")
-
-
-def train_single_case(case_key, chunk_size=4096, use_curriculum=False):
+def train_single_case(case_key, chunk_size=4096):
     """
     训练单个3D案例
     
@@ -142,9 +87,6 @@ def train_single_case(case_key, chunk_size=4096, use_curriculum=False):
     - 使用物理引擎实例化，无全局状态
     - 真正的梯度累加：每个chunk立即backward，不保留计算图
     - 无empty_cache()拖慢
-    
-    Args:
-        use_curriculum: 是否使用课程学习（渐进增加kappa）
     """
     from EquationModels.RadTrans3D_Complex import RadTrans3D_Physics
     
@@ -209,31 +151,18 @@ def train_single_case(case_key, chunk_size=4096, use_curriculum=False):
     # ========================================================================
     print("\n[3] Creating neural network...")
     
-    # 优化网络配置：针对高kappa问题的锐利梯度
-    if config['kappa'] >= 5.0:
-        # 高衰减问题需要更深更宽的网络
-        print("  [High kappa detected] Using enhanced network architecture")
-        NETWORK_PROPERTIES = {
-            "hidden_layers": 10,        # 更深的网络
-            "neurons": 256,             # 更宽的网络
-            "residual_parameter": 0.01,  # 降低残差权重，增加边界权重
-            "kernel_regularizer": 2,
-            "regularization_parameter": 0,
-            "batch_size": N_COLL + N_U,
-            "epochs": 1,
-            "activation": "swish"       # Swish更适合陡峭梯度
-        }
-    else:
-        NETWORK_PROPERTIES = {
-            "hidden_layers": 8,
-            "neurons": 128,
-            "residual_parameter": 0.1,
-            "kernel_regularizer": 2,
-            "regularization_parameter": 0,
-            "batch_size": N_COLL + N_U,
-            "epochs": 1,
-            "activation": "tanh"
-        }
+    # 增强网络配置：更深的网络、更宽的层、Swish激活函数
+    print("  Using enhanced network: 10 layers x 256 neurons, Swish activation")
+    NETWORK_PROPERTIES = {
+        "hidden_layers": 10,        # 更深的网络（原为8）
+        "neurons": 256,             # 更宽的层（原为128）
+        "residual_parameter": 0.1,
+        "kernel_regularizer": 2,
+        "regularization_parameter": 0,
+        "batch_size": N_COLL + N_U,
+        "epochs": 1,
+        "activation": "swish"       # Swish激活（原为tanh）
+    }
     
     input_dims = 5  # x, y, z, theta, phi
     output_dims = 1
@@ -254,21 +183,6 @@ def train_single_case(case_key, chunk_size=4096, use_curriculum=False):
         print("  Using CPU")
     
     print(f"  Parameters: {sum(p.numel() for p in model.parameters())}")
-    
-    # =======================================================================
-    # 步骤3.5：课程学习预热（高kappa问题）
-    # =======================================================================
-    if use_curriculum and config['kappa'] >= 5.0:
-        print("\n[3.5] Curriculum learning pre-training...")
-        # 渐进增加kappa: 1.0 -> 2.0 -> 3.0 -> 5.0
-        kappa_stages = [1.0, 2.0, 3.0, config['kappa']]
-        curriculum_training_stage(
-            model, physics, kappa_stages, 
-            iterations_per_stage=500,  # 每个阶段500轮
-            x_coll=x_coll, x_b=x_b, y_b=y_b,
-            chunk_size=chunk_size, device=device
-        )
-        print("  Curriculum pre-training completed!")
     
     # ========================================================================
     # 步骤4：配置优化器
@@ -298,41 +212,37 @@ def train_single_case(case_key, chunk_size=4096, use_curriculum=False):
     )
     
     # ========================================================================
-    # 步骤5：训练循环（真正的梯度累加！）
+    # 步骤5：训练循环（Adam预热 + L-BFGS精调，含权重退火）
     # ========================================================================
     print(f"\n[5] Training with chunk_size={chunk_size}...")
-    print("  Note: Each chunk computes loss, backward(), then releases graph immediately")
+    print("  Strategy: Adam warm-up (2000 iters, lambda=0.1) -> L-BFGS fine-tune (lambda=1.0)")
     
     training_history = {'epochs': [], 'total_loss': [], 'time': []}
     start_time = time.time()
     iteration = 0
+    annealing_printed = False  # 标记是否已打印权重切换信息
     
-    def closure():
-        nonlocal iteration
+    def compute_losses_and_backward(optimizer, lambda_residual):
+        """
+        统一的损失计算与反向传播函数
+        支持Adam和L-BFGS两种优化器
+        """
+        nonlocal iteration, annealing_printed
         
         optimizer.zero_grad()
         total_loss = 0.0
         
-        # ========== 1. 计算边界损失 (高kappa问题需要更强的边界约束) ==========
+        # ========== 1. 计算边界损失 ==========
         u_pred_b, u_train_b = physics.apply_bc(x_b, y_b, model)
         if u_pred_b.numel() > 0:
             loss_b = torch.mean((u_pred_b - u_train_b)**2)
-            
-            # 自适应边界权重：高kappa问题边界更重要
-            if config['kappa'] >= 5.0:
-                lambda_bc = 10.0 + min(iteration / 500, 10.0)  # 10-20动态增加
-            else:
-                lambda_bc = 1.0
-            
-            loss_b_weighted = lambda_bc * loss_b
-            loss_b_weighted.backward()  # 立即反向传播
-            total_loss += loss_b.item()  # 记录原始损失
-            del u_pred_b, u_train_b, loss_b, loss_b_weighted
-            
-        # ========== 2. 计算残差损失 (真正的 Chunking 梯度累加) ==========
+            loss_b.backward()
+            total_loss += loss_b.item()
+            del u_pred_b, u_train_b, loss_b
+        
+        # ========== 2. 计算残差损失 (Chunking梯度累加) ==========
         N_coll = x_coll.shape[0]
         n_chunks = (N_coll + chunk_size - 1) // chunk_size
-        lambda_residual = NETWORK_PROPERTIES["residual_parameter"]
         
         for i in range(n_chunks):
             start_idx = i * chunk_size
@@ -346,33 +256,87 @@ def train_single_case(case_key, chunk_size=4096, use_curriculum=False):
             weight = (end_idx - start_idx) / N_coll
             loss_chunk = lambda_residual * torch.mean(res_chunk**2) * weight
             
-            # 极其关键：立即反向传播并销毁图，保护显存！
+            # 立即反向传播并销毁图，保护显存
             loss_chunk.backward()
             total_loss += loss_chunk.item()
             
             # 手动销毁大张量引用
             del res_chunk, loss_chunk, x_chunk
-            
-        # ========== 3. 日志记录与进度输出 ==========
+        
+        # ========== 3. 日志记录与权重退火通知 ==========
         if iteration % 10 == 0:
             training_history['epochs'].append(iteration)
             training_history['total_loss'].append(total_loss)
             training_history['time'].append(time.time() - start_time)
-            
-            if iteration % 100 == 0:
-                elapsed = time.time() - start_time
-                print(f"  Iter {iteration:5d} | Loss: {total_loss:.6e} | Time: {elapsed:.1f}s")
-                if torch.cuda.is_available():
-                    print(f"          GPU Memory: {torch.cuda.memory_allocated() / 1024**3:.2f} GB")
-                    
+        
+        if iteration % 100 == 0 or (iteration == 2000 and not annealing_printed):
+            elapsed = time.time() - start_time
+            print(f"  Iter {iteration:5d} | Loss: {total_loss:.6e} | lambda: {lambda_residual:.1f} | Time: {elapsed:.1f}s")
+            if torch.cuda.is_available():
+                print(f"          GPU Memory: {torch.cuda.memory_allocated() / 1024**3:.2f} GB")
+        
+        # 权重退火切换通知（仅打印一次）
+        if iteration == 2000 and not annealing_printed:
+            print("\n" + "="*70)
+            print("[Weight Annealing] lambda_residual increased from 0.1 to 1.0!")
+            print("                  Switching from Adam to L-BFGS optimizer...")
+            print("="*70 + "\n")
+            annealing_printed = True
+        
         iteration += 1
         
-        # L-BFGS 要求闭包必须返回包含 total loss 的 Tensor
-        return torch.tensor(total_loss, device=device, requires_grad=True)
+        # 返回总损失（L-BFGS需要Tensor，Adam需要标量）
+        if isinstance(optimizer, optim.LBFGS):
+            return torch.tensor(total_loss, device=device, requires_grad=True)
+        else:
+            return total_loss
     
-    # 执行训练
+    # =========================================================================
+    # 阶段1: Adam预热 (迭代 0 ~ 1999)
+    # 目标：优先学习边界条件，权重lambda_residual=0.1
+    # =========================================================================
+    print("\n[Phase 1] Adam warm-up: boundary focus (lambda_residual=0.1)")
+    
+    optimizer_adam = optim.Adam(model.parameters(), lr=1e-3)
+    lambda_phase1 = 0.1
+    
+    for iter_adam in range(2000):
+        loss_val = compute_losses_and_backward(optimizer_adam, lambda_phase1)
+        optimizer_adam.step()
+        
+        # 可选：早停检查（损失停滞则提前进入Phase 2）
+        if iter_adam > 500 and len(training_history['total_loss']) > 10:
+            recent_losses = training_history['total_loss'][-10:]
+            if max(recent_losses) - min(recent_losses) < 1e-6:
+                print(f"  [Early stop] Loss stagnated at iter {iter_adam}, switching to L-BFGS early")
+                break
+    
+    # =========================================================================
+    # 阶段2: L-BFGS精调 (迭代 >= 2000)
+    # 目标：强化PDE约束，权重lambda_residual=1.0（常数以保持Hessian稳定）
+    # =========================================================================
+    print("\n[Phase 2] L-BFGS fine-tuning: PDE focus (lambda_residual=1.0)")
+    
+    lambda_phase2 = 1.0  # 进入L-BFGS后权重必须绝对恒定！
+    
+    optimizer_lbfgs = optim.LBFGS(
+        model.parameters(),
+        lr=lr,
+        max_iter=100000,
+        max_eval=100000,
+        tolerance_grad=tol_grad,
+        tolerance_change=tol_change,
+        history_size=150,
+        line_search_fn="strong_wolfe"
+    )
+    
+    # L-BFGS使用closure机制
+    def lbfgs_closure():
+        return compute_losses_and_backward(optimizer_lbfgs, lambda_phase2)
+    
+    # 执行L-BFGS训练
     try:
-        optimizer.step(closure)
+        optimizer_lbfgs.step(lbfgs_closure)
     except KeyboardInterrupt:
         print("\n  Training interrupted by user")
     
@@ -477,8 +441,6 @@ def main():
                        help='Which case to run (default: all)')
     parser.add_argument('--chunk-size', type=int, default=4096,
                        help='Chunk size for gradient accumulation (default: 4096)')
-    parser.add_argument('--curriculum', action='store_true',
-                       help='Use curriculum learning for high-kappa cases')
     
     args = parser.parse_args()
     
@@ -488,7 +450,6 @@ def main():
     print(f"Project Root: {PROJECT_ROOT}")
     print(f"Chunk Size: {args.chunk_size}")
     print(f"Cases: {args.case}")
-    print(f"Curriculum Learning: {'Enabled' if args.curriculum else 'Disabled'}")
     
     # 确定运行的案例
     if args.case == 'all':
@@ -500,8 +461,7 @@ def main():
     results = []
     for case_key in cases:
         try:
-            result = train_single_case(case_key, chunk_size=args.chunk_size, 
-                                       use_curriculum=args.curriculum)
+            result = train_single_case(case_key, chunk_size=args.chunk_size)
             results.append(result)
         except Exception as e:
             print(f"\n[ERROR] Case {case_key} failed: {e}")

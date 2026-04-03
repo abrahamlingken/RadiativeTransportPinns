@@ -15,7 +15,7 @@ validate_pure_absorption.py
     u_exact(x, μ) = exp(-kappa * x / μ)  for μ > 0
     u_exact(x, μ) = 0                    for μ ≤ 0
 
-作者: AI Assistant
+作者: Lk
 日期: 2026-03-19
 """
 

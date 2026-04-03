@@ -373,30 +373,82 @@ class RadTrans3D_Physics:
     
     def generate_collocation_points(self, n_collocation, sampling_seed=0):
         """
-        生成内部配点
+        生成内部配点 - 静态物理优先采样 (Static Importance Sampling)
+        
+        采样策略：50/50分割，兼顾全局覆盖与热源区域加密
+        - 问题背景：热源 S = max(0, 1-5r) 仅在 r < 0.2 内非零，体积占比仅约0.8%
+        - 均匀采样会导致源区域内配点严重不足，PINN无法学习局部特征
+        
+        具体策略：
+        1. 50% 均匀分布：空间坐标覆盖 [0,1]^3，确保全局物理一致性
+        2. 50% 中心聚焦：空间坐标压缩至 [0.3,0.7]^3，密集采样热源区域
+        3. 角度坐标：两组均采用完整角度域 [0,π]×[0,2π]，不压缩
+        
+        Args:
+            n_collocation: 总配点数
+            sampling_seed: Sobol序列随机种子
+            
+        Returns:
+            inputs: [N, 5] 配点坐标 (x, y, z, theta, phi)
+            u: [N, 1] 虚拟标签，填充NaN
         """
         from scipy.stats import qmc
+        import numpy as np
         
-        sampler = qmc.Sobol(d=5, scramble=False)
-        if sampling_seed > 0:
-            sampler.fast_forward(sampling_seed)
+        # 50/50分割配点数
+        n_uniform = n_collocation // 2
+        n_center = n_collocation - n_uniform  # 处理奇数情况
         
-        points = sampler.random(n=n_collocation)
-        points = torch.from_numpy(points).float().to(self.dev)
+        # =========================================================================
+        # 生成基础Sobol序列 (5D: x, y, z, theta, phi)
+        # =========================================================================
         
-        # 空间坐标: [0, 1]^3
-        x = points[:, 0]
-        y = points[:, 1]
-        z = points[:, 2]
+        # 均匀分布组：全区域覆盖
+        sampler_uniform = qmc.Sobol(d=5, scramble=False, seed=sampling_seed)
+        points_uniform = sampler_uniform.random(n_uniform)
         
-        # 角度坐标
-        theta = points[:, 3] * pi      # [0, π]
-        phi = points[:, 4] * 2 * pi    # [0, 2π]
+        # 中心聚焦组：热源区域加密
+        sampler_center = qmc.Sobol(d=5, scramble=False, seed=sampling_seed + 1)
+        points_center = sampler_center.random(n_center)
         
-        inputs = torch.stack([x, y, z, theta, phi], dim=-1)
+        # =========================================================================
+        # 空间坐标映射 (x, y, z)
+        # =========================================================================
         
-        # 内部点无监督标签
-        u = torch.full((n_collocation, 1), float('nan'), device=self.dev)
+        # 均匀组：映射至 [0, 1]^3
+        xyz_uniform = points_uniform[:, :3]  # 已是 [0, 1]
+        
+        # 中心聚焦组：压缩至 [0.3, 0.7]^3，紧密包围中心 (0.5, 0.5, 0.5)
+        xyz_center = 0.3 + 0.4 * points_center[:, :3]  # 映射公式: a + (b-a)*x, 其中 a=0.3, b=0.7
+        
+        # =========================================================================
+        # 角度坐标映射 (theta, phi) - 两组均采用完整角度域
+        # =========================================================================
+        
+        # theta ∈ [0, π] - 极角全覆盖
+        theta_uniform = np.pi * points_uniform[:, 3]
+        theta_center = np.pi * points_center[:, 3]
+        
+        # phi ∈ [0, 2π] - 方位角全覆盖
+        phi_uniform = 2 * np.pi * points_uniform[:, 4]
+        phi_center = 2 * np.pi * points_center[:, 4]
+        
+        # =========================================================================
+        # 合并并转换为张量
+        # =========================================================================
+        
+        # 堆叠坐标: (x, y, z, theta, phi)
+        coords_uniform = np.stack([xyz_uniform[:, 0], xyz_uniform[:, 1], 
+                                    xyz_uniform[:, 2], theta_uniform, phi_uniform], axis=1)
+        coords_center = np.stack([xyz_center[:, 0], xyz_center[:, 1], 
+                                   xyz_center[:, 2], theta_center, phi_center], axis=1)
+        
+        # 垂直拼接两组配点
+        coords_combined = np.vstack([coords_uniform, coords_center])
+        
+        # 转为torch张量并放置到计算设备
+        inputs = torch.tensor(coords_combined, dtype=torch.float32, device=self.dev)
+        u = torch.full((n_collocation, 1), float('nan'), dtype=torch.float32, device=self.dev)
         
         return inputs, u
     
