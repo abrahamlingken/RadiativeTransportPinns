@@ -166,6 +166,7 @@ RDF = reshape(RDFs,nx+2,ny+2,nz+2);% 辐射分配因子
 RDF = RDF(2:nx+1,2:ny+1,2:nz+1)/nray;
 RDF = reshape(RDF,nx*ny*nz,1); 
 RI = sigma*RDF'*Temp.^4/pi; % 辐射强度
+save('MATLAB_CaseA.mat', 'G', 'x', 'y', 'z', 'kappa', 'sigma_s', 'g');
 
 toc
 

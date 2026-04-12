@@ -81,7 +81,11 @@ CASE_CONFIGS = {
 # 训练函数
 # ========================================================================
 
-def train_single_case(case_key, chunk_size=4096):
+def train_single_case(case_key, chunk_size=4096, 
+                       adam_iters=2000, lbfgs_max_iter=100000,
+                       n_coll=16384, n_boundary=12288,
+                       hidden_layers=10, neurons=256, activation='swish',
+                       seed=42):
     """
     训练单个3D案例
     
@@ -135,9 +139,9 @@ def train_single_case(case_key, chunk_size=4096):
     # ========================================================================
     print("\n[2] Generating training points...")
     
-    N_COLL = 16384
-    N_U = 12288
-    SAMPLING_SEED = 32
+    N_COLL = n_coll
+    N_U = n_boundary
+    SAMPLING_SEED = seed
     
     torch.manual_seed(SAMPLING_SEED)
     
@@ -153,17 +157,17 @@ def train_single_case(case_key, chunk_size=4096):
     # ========================================================================
     print("\n[3] Creating neural network...")
     
-    # Enhanced network config: deeper, wider, Swish activation
-    print("  Using enhanced network: 10 layers x 256 neurons, Swish activation")
+    # Network config
+    print(f"  Network: {hidden_layers} layers x {neurons} neurons, {activation} activation")
     NETWORK_PROPERTIES = {
-        "hidden_layers": 10,        # Deeper network (was 8)
-        "neurons": 256,             # Wider layer (was 128)
+        "hidden_layers": hidden_layers,
+        "neurons": neurons,
         "residual_parameter": 0.1,
         "kernel_regularizer": 2,
         "regularization_parameter": 0,
         "batch_size": N_COLL + N_U,
         "epochs": 1,
-        "activation": "swish"       # Swish activation (was tanh)
+        "activation": activation
     }
     
     input_dims = 5  # x, y, z, theta, phi
@@ -171,7 +175,7 @@ def train_single_case(case_key, chunk_size=4096):
     
     model = Pinns(input_dims, output_dims, NETWORK_PROPERTIES)
     
-    torch.manual_seed(42)
+    torch.manual_seed(seed)
     init_xavier(model)
     
     if torch.cuda.is_available():
@@ -302,7 +306,7 @@ def train_single_case(case_key, chunk_size=4096):
     optimizer_adam = optim.Adam(model.parameters(), lr=1e-3)
     lambda_phase1 = 0.1
     
-    for iter_adam in range(2000):
+    for iter_adam in range(adam_iters):
         loss_val = compute_losses_and_backward(optimizer_adam, lambda_phase1)
         optimizer_adam.step()
         
@@ -324,8 +328,8 @@ def train_single_case(case_key, chunk_size=4096):
     optimizer_lbfgs = optim.LBFGS(
         model.parameters(),
         lr=lr,
-        max_iter=100000,
-        max_eval=100000,
+        max_iter=lbfgs_max_iter,
+        max_eval=lbfgs_max_iter,
         tolerance_grad=tol_grad,
         tolerance_change=tol_change,
         history_size=150,
@@ -369,7 +373,11 @@ def train_single_case(case_key, chunk_size=4096):
         'chunk_size': chunk_size,
         'device': str(device),
         'n_collocation': N_COLL,
-        'n_boundary': N_U
+        'n_boundary': N_U,
+        'hidden_layers': hidden_layers,
+        'neurons': neurons,
+        'activation': activation,
+        'seed': seed
     }
     with open(os.path.join(folder_path, "training_info.json"), 'w') as f:
         json.dump(info, f, indent=2)
@@ -443,6 +451,23 @@ def main():
                        help='Which case to run (default: all)')
     parser.add_argument('--chunk-size', type=int, default=4096,
                        help='Chunk size for gradient accumulation (default: 4096)')
+    parser.add_argument('--adam-iters', type=int, default=2000,
+                       help='Adam warm-up iterations (default: 2000)')
+    parser.add_argument('--lbfgs-max-iter', type=int, default=100000,
+                       help='L-BFGS max iterations (default: 100000)')
+    parser.add_argument('--n-coll', type=int, default=16384,
+                       help='Number of collocation points (default: 16384)')
+    parser.add_argument('--n-boundary', type=int, default=12288,
+                       help='Number of boundary points (default: 12288)')
+    parser.add_argument('--layers', type=int, default=10,
+                       help='Hidden layers (default: 10)')
+    parser.add_argument('--neurons', type=int, default=256,
+                       help='Neurons per layer (default: 256)')
+    parser.add_argument('--activation', type=str, default='swish',
+                       choices=['swish', 'tanh', 'relu', 'sigmoid'],
+                       help='Activation function (default: swish)')
+    parser.add_argument('--seed', type=int, default=42,
+                       help='Random seed (default: 42)')
     
     args = parser.parse_args()
     
@@ -463,7 +488,15 @@ def main():
     results = []
     for case_key in cases:
         try:
-            result = train_single_case(case_key, chunk_size=args.chunk_size)
+            result = train_single_case(case_key, chunk_size=args.chunk_size,
+                                       adam_iters=args.adam_iters,
+                                       lbfgs_max_iter=args.lbfgs_max_iter,
+                                       n_coll=args.n_coll,
+                                       n_boundary=args.n_boundary,
+                                       hidden_layers=args.layers,
+                                       neurons=args.neurons,
+                                       activation=args.activation,
+                                       seed=args.seed)
             results.append(result)
         except Exception as e:
             print(f"\n[ERROR] Case {case_key} failed: {e}")
